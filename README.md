@@ -93,11 +93,11 @@ Implementations:
 
 | Group          | Method                                                    | Description                                                                                                                               |
 |----------------|-----------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------|
-| simple block   | `SimpleCBC`, `SimpleCFB`, `SimpleOFB`, `SimpleCTR`        | encrypt/decrypt a string, using another string to derive the key                                                                          |
+| simple block   | `SimpleCBC`, `SimpleCFB`, `SimpleOFB`, `SimpleCTR`        | encrypt/decrypt a string, using another string to derive the key. (AES-256)                                                               |
 | new block      | `NewCBC`, `NewCFB`, `NewOFB`, `NewCTR`                    | encrypt/decrypt a string, using your custom key, with options to control key length, iv, padding, etc.                                    |
-| simple stream  | `SimpleCFBStream`, `SimpleOFBStream`, `SimpleCTRStream`   | encrypt/decrypt data from/to an `io.Reader`/`io.Writer`, using another string to derive the key                                           |
+| simple stream  | `SimpleCFBStream`, `SimpleOFBStream`, `SimpleCTRStream`   | encrypt/decrypt data from/to an `io.Reader`/`io.Writer`, using another string to derive the key. (AES-256)                                |
 | new stream     | `NewCFBStream`, `NewOFBStream`, `NewCTRStream`            | encrypt/decrypt data from/to an `io.Reader`/`io.Writer`, using your custom key, with options to control key length, iv, padding, etc.     |
-| simple AEAD    | `SimpleGCM`                                               | encrypt/decrypt a string with associated authenticated data, using another string to derive the key                                       |
+| simple AEAD    | `SimpleGCM`                                               | encrypt/decrypt a string with associated authenticated data, using another string to derive the key. (AES-256)                            |
 | new AEAD       | `NewGCM`                                                  | encrypt/decrypt a string with associated authenticated data, using your custom key, with options to control key length, iv, padding, etc. |
 | key derivation | `NewKey`, `NewAeskey`, `NewNonce`, `NewIV`, `NewRandomIv` | generate a secure key, aes key, nonce, iv from an arbitrary passphrase, with options to control key length, salt, etc.                    |
 
@@ -161,6 +161,11 @@ And why `CTR`? what's the difference between `CTR`, `CFB`, `OFB` and `CBC`?
 
 - Just use `CTR` if you don't know what to choose. (Because I prefer this name, literally.)
 - Or learn some cryptography and choose the right one for your use case: [Block cipher mode of operation](https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation).
+
+Technical details:
+
+- `SimpleXXX` force to use AES-256, while `NewXXX` allows you to choose from AES-128, AES-192 and AES-256.
+- `SimpleXXX` does key derivation with scrypt, and the result is not accessible (though you can always hack it out of course). So use `NewXXX` if you want to get the key and to use it with other tools.
 
 ## License
 

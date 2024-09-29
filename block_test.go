@@ -4,6 +4,7 @@ import (
 	"crypto/aes"
 	"encoding/hex"
 	"fmt"
+	"os/exec"
 	"testing"
 )
 
@@ -210,4 +211,43 @@ func ExampleSimpleCTR() {
 	fmt.Println(decrypted)
 
 	// Output: Hello, World!
+}
+
+// ExampleNewCTR demonstrates how to use NewCTR to encrypt a plaintext
+// and decrypt the ciphertext using the same key and iv via OpenSSL.
+func ExampleNewCTR() {
+	rawKey := "my-raw-key-with-32-bytes-length-"
+	rawIv := "16ByteInitVector"
+
+	cipher := NewCTR(String(rawKey), String(rawIv))
+
+	encrypted, _ := cipher.Encrypt("Hello, World!")
+	fmt.Println("ciphertext by simplecipher:", encrypted)
+
+	decrypted, _ := cipher.Decrypt(encrypted)
+	fmt.Println("decrypted by simplecipher:", decrypted)
+
+	// or use openssl to decrypt the ciphertext
+	// echo "raw ciphertext" | openssl enc -d -aes-256-ctr -K "key in hex" -iv "iv in hex"
+
+	rawCiphertext, _ := hex.DecodeString(encrypted[32:]) // remove the iv, openssl doesn't recognize it
+	hexKey := hex.EncodeToString([]byte(rawKey))
+	hexIv := hex.EncodeToString([]byte(rawIv))
+
+	//fmt.Println("key in hex:", hexKey)
+	//fmt.Println("iv in hex:", hexIv)
+
+	opensslCmd := exec.Command("openssl", "enc", "-d", "-aes-256-ctr", "-K", hexKey, "-iv", hexIv)
+
+	opensslStdin, _ := opensslCmd.StdinPipe()
+	_, _ = opensslStdin.Write(rawCiphertext)
+	_ = opensslStdin.Close()
+
+	opensslDecrypted, _ := opensslCmd.CombinedOutput()
+	fmt.Println("decrypted by openssl:", string(opensslDecrypted))
+
+	// Output:
+	// ciphertext by simplecipher: 313642797465496e6974566563746f720c2058d6452bd8771bf706e8b0
+	// decrypted by simplecipher: Hello, World!
+	// decrypted by openssl: Hello, World!
 }
