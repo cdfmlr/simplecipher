@@ -318,3 +318,16 @@ func TestNewRandomIv(t *testing.T) {
 	}
 	// t.Logf("iv1: %x, iv2: %x", iv1.Bytes(), iv2.Bytes())
 }
+
+func ExampleNewKey() {
+	// derive a key from a passphrase
+
+	passphrase := "my-secret-key"
+	keyLen := Aes256 // 32
+	salt := "NaCl"
+
+	key := NewKey(passphrase, keyLen, salt)
+
+	// use the key for encryption or any other purpose
+	_ = key
+}

@@ -3,6 +3,7 @@ package simplecipher
 import (
 	"bytes"
 	"crypto/aes"
+	"fmt"
 	"testing"
 )
 
@@ -167,4 +168,34 @@ func FuzzSimpleCTRStream(f *testing.F) {
 	fuzzSimpleStream(f, func(key string) Stream {
 		return SimpleCTRStream(key)
 	})
+}
+
+func ExampleSimpleCTRStream() {
+	DefaultSalt = func() string { return "NaCl" }
+
+	key := "my-secret-key"
+	plainText := "Hello, World!"
+
+	stream := SimpleCTRStream(key)
+
+	// Encrypting
+	plaintextReader := bytes.NewReader([]byte(plainText))
+	encryptedBuffer := new(bytes.Buffer)
+
+	_ = stream.EncryptStream(plaintextReader, encryptedBuffer)
+
+	encrypted := encryptedBuffer.String()
+	// fmt.Println(encrypted)
+
+	// Decrypting
+	encryptedReader := bytes.NewReader([]byte(encrypted))
+	decryptedBuffer := new(bytes.Buffer)
+
+	_ = stream.DecryptStream(encryptedReader, decryptedBuffer)
+
+	decrypted := decryptedBuffer.String()
+
+	fmt.Println(decrypted)
+
+	// Output: Hello, World!
 }

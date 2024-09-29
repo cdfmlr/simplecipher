@@ -3,6 +3,7 @@ package simplecipher
 import (
 	"crypto/aes"
 	"encoding/hex"
+	"fmt"
 	"testing"
 )
 
@@ -192,4 +193,21 @@ func FuzzSimpleStreamAsBlock(f *testing.F) {
 			testCipher(name, t, createSimpleBlock, plaintext)
 		}
 	})
+}
+
+func ExampleSimpleCTR() {
+	DefaultSalt = func() string { return "NaCl" }
+
+	key := "my-secret-key"
+	plainText := "Hello, World!"
+
+	cipher := SimpleCTR(key)
+
+	encrypted, _ := cipher.Encrypt(plainText)
+	// fmt.Println(encrypted)
+
+	decrypted, _ := cipher.Decrypt(encrypted)
+	fmt.Println(decrypted)
+
+	// Output: Hello, World!
 }

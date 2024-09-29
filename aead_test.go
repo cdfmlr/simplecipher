@@ -1,7 +1,9 @@
 package simplecipher
 
 import (
+	"fmt"
 	"testing"
+	"time"
 )
 
 func FuzzNewGCM(f *testing.F) {
@@ -38,4 +40,23 @@ func FuzzSimpleGCM(f *testing.F) {
 
 		testCipher("", t, createSimpleGCM, plaintext)
 	})
+}
+
+func ExampleSimpleGCM() {
+	DefaultSalt = func() string { return "NaCl" }
+
+	key := "my-secret-key"
+	nonce := time.Now().Format(time.DateOnly)
+
+	plainText := "Hello, World!"
+
+	cipher := SimpleGCM(key, nonce)
+
+	encrypted, _ := cipher.Encrypt(plainText)
+	// fmt.Println(encrypted)
+
+	decrypted, _ := cipher.Decrypt(encrypted)
+	fmt.Println(decrypted)
+
+	// Output: Hello, World!
 }
