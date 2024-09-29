@@ -39,7 +39,9 @@ var _ Cipher = (*cbc)(nil)
 //   - The IV must be [aes.BlockSize] bytes long.
 //   - The plaintext must be padded to a multiple of [aes.BlockSize] bytes.
 //
-// Use [SimpleCBC] if you are not familiar this.
+// Use [SimpleCBC] if you are not familiar with these.
+//
+// See also: [cipher.NewCBCDecrypter], [cipher.NewCBCEncrypter] for low-level usage.
 func NewCBC(key, iv Key) Cipher {
 	return &cbc{key: key, iv: iv}
 }
@@ -49,7 +51,7 @@ func NewCBC(key, iv Key) Cipher {
 //
 // The IV will be prepended to the ciphertext as the first block.
 func (c *cbc) Encrypt(plainText string) (cipherText string, err error) {
-	defer recoverPanic(&err)
+	defer recoverFromPanic(&err)
 
 	plaintext := []byte(plainText)
 
@@ -86,7 +88,7 @@ func (c *cbc) Encrypt(plainText string) (cipherText string, err error) {
 // The iv prepended to the ciphertext (the first block) will be used.
 // And the iv field of the cbc will be ignored.
 func (c *cbc) Decrypt(cipherText string) (plainText string, err error) {
-	defer recoverPanic(&err)
+	defer recoverFromPanic(&err)
 
 	ciphertext, err := DefaultStringCodec.DecodeString(cipherText)
 	if err != nil {
@@ -136,19 +138,21 @@ type simpleCBC struct {
 //
 // The plaintext is automatically padded to a multiple of [aes.BlockSize] bytes
 // with PKCS7 padding.
+//
+// See also: [NewCBC] for more control.
 func SimpleCBC(keyPassphrase string) Cipher {
 	return &simpleCBC{cbc: cbc{key: NewAesKey(keyPassphrase), iv: NewRandomIv()}}
 }
 
 func (c *simpleCBC) Encrypt(plainText string) (cipherText string, err error) {
-	defer recoverPanic(&err)
+	defer recoverFromPanic(&err)
 
 	paddedText := string(pkcs7.Pad(aes.BlockSize, []byte(plainText)))
 	return c.cbc.Encrypt(paddedText)
 }
 
 func (c *simpleCBC) Decrypt(cipherText string) (plainText string, err error) {
-	defer recoverPanic(&err)
+	defer recoverFromPanic(&err)
 
 	paddedText, err := c.cbc.Decrypt(cipherText)
 	if err != nil {
@@ -179,7 +183,7 @@ func newStreamToBlock(sc Stream) Cipher {
 }
 
 func (s *streamToBlock) Encrypt(plainText string) (cipherText string, err error) {
-	defer recoverPanic(&err)
+	defer recoverFromPanic(&err)
 
 	plainTextReader := bytes.NewReader([]byte(plainText))
 	cipherTextBuffer := new(bytes.Buffer)
@@ -196,7 +200,7 @@ func (s *streamToBlock) Encrypt(plainText string) (cipherText string, err error)
 }
 
 func (s *streamToBlock) Decrypt(cipherText string) (plainText string, err error) {
-	defer recoverPanic(&err)
+	defer recoverFromPanic(&err)
 
 	cipherTextBytes, err := DefaultStringCodec.DecodeString(cipherText)
 	if err != nil {
@@ -223,13 +227,17 @@ func (s *streamToBlock) Decrypt(cipherText string) (plainText string, err error)
 // The iv will be prepended to the ciphertext during encryption,
 // and the first block of the ciphertext will be treated as the IV during decryption.
 //
-// Use SimpleCFB if you are not familiar this.
+// Use SimpleCFB if you are not familiar with this.
+//
+// See also: [cipher.NewCFBDecrypter], [cipher.NewCFBEncrypter] for low-level usage.
 func NewCFB(key, iv Key) Cipher {
 	return newStreamToBlock(NewCFBStream(key, iv))
 }
 
 // SimpleCFB creates a new AES-256-CFB cipher with a key derived from
 // the given keyPassphrase and a random iv prepended to the ciphertext.
+//
+// See also: [NewCFB] for more control.
 func SimpleCFB(keyPassphrase string) Cipher {
 	return newStreamToBlock(SimpleCFBStream(keyPassphrase))
 }
@@ -242,13 +250,17 @@ func SimpleCFB(keyPassphrase string) Cipher {
 // The iv will be prepended to the ciphertext during encryption,
 // and the first block of the ciphertext will be treated as the IV during decryption.
 //
-// Use [SimpleOFB] if you are not familiar this.
+// Use [SimpleOFB] if you are not familiar with this.
+//
+// See also: [cipher.NewOFB] for low-level usage.
 func NewOFB(key, iv Key) Cipher {
 	return newStreamToBlock(NewOFBStream(key, iv))
 }
 
 // SimpleOFB creates a new AES-256-OFB cipher with a key derived from
 // the given keyPassphrase and a random iv prepended to the ciphertext.
+//
+// See also: [NewOFB] for more control.
 func SimpleOFB(keyPassphrase string) Cipher {
 	return newStreamToBlock(SimpleOFBStream(keyPassphrase))
 }
@@ -261,13 +273,17 @@ func SimpleOFB(keyPassphrase string) Cipher {
 // The iv will be prepended to the ciphertext during encryption,
 // and the first block of the ciphertext will be treated as the IV during decryption.
 //
-// Use [SimpleCTR] if you are not familiar this.
+// Use [SimpleCTR] if you are not familiar with this.
+//
+// See also: [cipher.NewCTR] for low-level usage.
 func NewCTR(key, iv Key) Cipher {
 	return newStreamToBlock(NewCTRStream(key, iv))
 }
 
 // SimpleCTR creates a new AES-256-CTR cipher with a key derived from
 // the given keyPassphrase and a random iv prepended to the ciphertext.
+//
+// See also: [NewCTR] for more control.
 func SimpleCTR(keyPassphrase string) Cipher {
 	return newStreamToBlock(SimpleCTRStream(keyPassphrase))
 }

@@ -13,6 +13,8 @@ import (
 //   - Base64
 //   - Base32
 
+// StringCodec is an interface that provides encoding and decoding functions
+// for Cipher ciphertexts.
 type StringCodec interface {
 	EncodeToString(src []byte) string
 	DecodeString(s string) ([]byte, error)
@@ -33,6 +35,8 @@ type StringCodec interface {
 //	simplecipher.DefaultStringCodec = simplecipher.NopCodec
 //	ciphertext := simplecipher.SimpleCTR("strong-key").Encrypt("plaintext")
 //	rawCiphertextBytes := []byte(ciphertext) // rawCiphertextBytes is now the ciphertext bytes output by the algorithm without encoding.
+//
+// See also: [HexCodec], [Base64StdCodec], [Base64URLCodec], [Base32StdCodec], [Base32HexCodec], [NopCodec]
 var DefaultStringCodec StringCodec = HexCodec
 
 type nopCodec struct{}
@@ -64,6 +68,8 @@ func (hexCodec) DecodeString(s string) ([]byte, error) {
 
 // HexCodec encodes and decodes using hexadecimal encoding:
 //   - alphabet is "0123456789abcdef"
+//
+// See also: [hex.EncodeToString], [hex.DecodeString]
 var HexCodec StringCodec = hexCodec{}
 
 // base64Codec is a StringCodec that encodes and decodes using base64 encoding.
@@ -74,11 +80,15 @@ type base64Codec struct {
 // Base64StdCodec encodes and decodes using standard base64 encoding:
 //   - alphabet is "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
 //   - padding character is '='
+//
+// See also: [base64.StdEncoding]
 var Base64StdCodec StringCodec = base64Codec{base64.StdEncoding}
 
 // Base64URLCodec encodes and decodes using URL-compatible base64 encoding:
 //   - alphabet is "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
 //   - padding character is '='
+//
+// See also: [base64.URLEncoding]
 var Base64URLCodec StringCodec = base64Codec{base64.URLEncoding}
 
 type base32Codec struct {
@@ -88,9 +98,13 @@ type base32Codec struct {
 // Base32StdCodec encodes and decodes using standard base32 encoding:
 //   - alphabet is "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
 //   - padding character is '='
+//
+// See also: [base32.StdEncoding]
 var Base32StdCodec StringCodec = base32Codec{base32.StdEncoding}
 
 // Base32HexCodec encodes and decodes using base32 encoding with extended hex alphabet:
 //   - alphabet is "0123456789ABCDEFGHIJKLMNOPQRSTUV"
 //   - padding character is '='
+//
+// See also: [base32.HexEncoding]
 var Base32HexCodec StringCodec = base32Codec{base32.HexEncoding}

@@ -34,7 +34,7 @@ var _ Stream = (*steam)(nil)
 // EncryptStream encrypts the given plaintext using CFB.
 // The ciphertext is written to the given writer without encoding.
 func (s *steam) EncryptStream(plainText io.Reader, cipherText io.Writer) (err error) {
-	defer recoverPanic(&err)
+	defer recoverFromPanic(&err)
 
 	key := s.key.Bytes()
 	iv := s.iv.Bytes()
@@ -60,7 +60,7 @@ func (s *steam) EncryptStream(plainText io.Reader, cipherText io.Writer) (err er
 // DecryptStream decrypts the given ciphertext using CFB.
 // The ciphertext read from the given reader should not be encoded.
 func (s *steam) DecryptStream(cipherText io.Reader, plainText io.Writer) (err error) {
-	defer recoverPanic(&err)
+	defer recoverFromPanic(&err)
 
 	key := s.key.Bytes()
 
@@ -139,6 +139,9 @@ const (
 //
 //   - The key must be 16, 24, or 32 bytes long to select AES-128, AES-192, or AES-256.
 //   - The IV must be [aes.BlockSize] bytes long.
+//
+// Use [SimpleCFBStream] if you are not familiar with these.
+// See also: [cipher.NewCFBDecrypter], [cipher.NewCFBEncrypter] for low-level usage.
 func NewCFBStream(key, iv Key) Stream {
 	return &steam{key: key, iv: iv, cipherStream: cfbStreamBuilder}
 }
@@ -149,6 +152,8 @@ func NewCFBStream(key, iv Key) Stream {
 // arbitrary keyPassphrase string via scrypt.
 //
 // The iv will be a random value.
+//
+// See also: [NewCFBStream] for more control.
 func SimpleCFBStream(keyPassphrase string) Stream {
 	return NewCFBStream(NewAesKey(keyPassphrase), NewRandomIv())
 }
@@ -161,6 +166,9 @@ func SimpleCFBStream(keyPassphrase string) Stream {
 //
 //   - The key must be 16, 24, or 32 bytes long to select AES-128, AES-192, or AES-256.
 //   - The IV must be [aes.BlockSize] bytes long.
+//
+// Use [SimpleOFBStream] if you are not familiar with these.
+// See also: [cipher.NewOFB] for low-level usage.
 func NewOFBStream(key, iv Key) Stream {
 	return &steam{key: key, iv: iv, cipherStream: ofbStreamBuilder}
 }
@@ -171,6 +179,8 @@ func NewOFBStream(key, iv Key) Stream {
 // arbitrary keyPassphrase string via scrypt.
 //
 // The iv will be a random value.
+//
+// See also: [NewOFBStream] for more control.
 func SimpleOFBStream(keyPassphrase string) Stream {
 	return NewOFBStream(NewAesKey(keyPassphrase), NewRandomIv())
 }
@@ -183,6 +193,9 @@ func SimpleOFBStream(keyPassphrase string) Stream {
 //
 //   - The key must be 16, 24, or 32 bytes long to select AES-128, AES-192, or AES-256.
 //   - The IV must be [aes.BlockSize] bytes long.
+//
+// Use [SimpleCTRStream] if you are not familiar with these.
+// See also: [cipher.NewCTR] for low-level usage.
 func NewCTRStream(key, iv Key) Stream {
 	return &steam{key: key, iv: iv, cipherStream: ctrStreamBuilder}
 }
@@ -193,6 +206,8 @@ func NewCTRStream(key, iv Key) Stream {
 // arbitrary keyPassphrase string via scrypt.
 //
 // The iv will be a random value.
+//
+// See also: [NewCTRStream] for more control.
 func SimpleCTRStream(keyPassphrase string) Stream {
 	return NewCTRStream(NewAesKey(keyPassphrase), NewRandomIv())
 }

@@ -83,7 +83,7 @@ func newKeyGen(passphrase string, len KeyLen, salt string) *keyGen {
 // NewKey derives a new key in the specified length from the passphrase.
 //
 // The output key will be derived from the Passphrase (with Salt) via
-// Sequential Memory-Hard Functions.
+// Sequential Memory-Hard Functions (see [scrypt.Key] for details).
 //
 // Any UTF-8 string can be used as an input key (including "") and Salt.
 //

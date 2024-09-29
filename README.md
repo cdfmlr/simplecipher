@@ -7,9 +7,11 @@ decrypting data using AES.
 
 Features:
 
+- A bit more muggle-friendly and ready-to-use interface: wraps around the standard [`crypto/aes`](https://pkg.go.dev/crypto/aes) and [`crypto/cipher`](https://pkg.go.dev/crypto/cipher) package.
 - **string in -> string out**: Input key, input plaintext, output ciphertext or output plaintext are all strings. Optional hex, base64 or base32 encoding for ciphertext.
 - **Key derivation**: Able to generate a secure key matching the required length from an arbitrary passphrase.
 - Padding and unpadding for plaintext if necessary.
+- Fuzz tested.
 
 Cipher modes:
 
