@@ -11,29 +11,57 @@ func TestBytes_Bytes(t *testing.T) {
 
 	tests := []struct {
 		name string
-		k    Bytes
+		k    bytesKey
 		want []byte
 	}{
 		{
 			name: "empty",
-			k:    Bytes{},
+			k:    bytesKey{},
 			want: []byte{},
 		},
 		{
 			name: "nil",
-			k:    Bytes(nil),
+			k:    bytesKey(nil),
 			want: nil,
 		},
 		{
 			name: "common",
-			k:    Bytes{1, 2, 3},
+			k:    bytesKey{1, 2, 3},
 			want: []byte{1, 2, 3},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := tt.k.Bytes(); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Bytes() = %v, want %v", got, tt.want)
+				t.Errorf("bytesKey() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestString_Bytes(t *testing.T) {
+	DefaultSalt = func() string { return "testsalt" }
+
+	tests := []struct {
+		name string
+		k    Key
+		want []byte
+	}{
+		{
+			name: "empty",
+			k:    String(""),
+			want: []byte{},
+		},
+		{
+			name: "common",
+			k:    String("hello"),
+			want: []byte("hello"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.k.Bytes(); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("stringKey() = %v, want %v", got, tt.want)
 			}
 		})
 	}

@@ -28,20 +28,30 @@ type Key interface {
 
 //////// Bytes & String //////////
 
-// Bytes is a simple type to convert a byte slice to a [Key].
-type Bytes []byte
+// bytesKey is a simple type to convert a byte slice to a [Key].
+type bytesKey []byte
 
-var _ Key = (*Bytes)(nil)
+var _ Key = (*bytesKey)(nil)
 
-func (k Bytes) Bytes() []byte {
+func (k bytesKey) Bytes() []byte {
 	return k
 }
 
-// String is a simple type to convert a string to a [Key].
-type String string
+// Bytes is a helper function to convert a byte slice to a [Key].
+func Bytes(b []byte) Key {
+	return bytesKey(b)
+}
 
-func (k String) Bytes() []byte {
+// stringKey is a simple type to convert a string to a [Key].
+type stringKey string
+
+func (k stringKey) Bytes() []byte {
 	return []byte(k)
+}
+
+// String is a helper function to convert a string to a [Key].
+func String(s string) Key {
+	return stringKey(s)
 }
 
 //////// KeyGen //////////
