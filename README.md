@@ -1,7 +1,9 @@
 # simplecipher
 
-Package simplecipher provides a simple interface for encrypting and 
-decrypting data using a symmetric key.
+[![GoDoc](https://pkg.go.dev/badge/github.com/cdfmlr/simplecipher)](https://pkg.go.dev/github.com/cdfmlr/simplecipher)
+
+Package simplecipher provides a simple interface for encrypting and
+decrypting data using AES.
 
 Features:
 
@@ -68,6 +70,34 @@ Best practice:
 - Create a new cipher instance for each encryption.
 - Store and pass the key securely.
 - Remember to set you own salt for key derivation. And Keep it secret and safe too if possible. (Notice: You need to use the same salt for decryption and encryption.)
+
+## APIs
+
+Cipher interface:
+
+- `Encrypt(plaintext string) (ciphertext string, err error)`: Encrypt a plaintext string.
+- `Decrypt(ciphertext string) (plaintext string, err error)`: Decrypt a ciphertext string.
+
+Stream interface:
+
+- `EncryptStream(in io.Reader, out io.Writer) (err error)`: Encrypt data from `in` to `out`.
+- `DecryptStream(in io.Reader, out io.Writer) (err error)`: Decrypt data from `in` to `out`.
+
+Key derivation interface:
+
+- `Bytes() []byte`: Return the key in bytes. So basically, anything can be a key. And we also treat the nonce, iv, etc. as keys, to make things simple.
+
+Implementations:
+
+| Group          | Method                                                    | Description                                                                                                                               |
+|----------------|-----------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------|
+| simple block   | `SimpleCBC`, `SimpleCFB`, `SimpleOFB`, `SimpleCTR`        | encrypt/decrypt a string, using another string to derive the key                                                                          |
+| new block      | `NewCBC`, `NewCFB`, `NewOFB`, `NewCTR`                    | encrypt/decrypt a string, using your custom key, with options to control key length, iv, padding, etc.                                    |
+| simple stream  | `SimpleCFBStream`, `SimpleOFBStream`, `SimpleCTRStream`   | encrypt/decrypt data from/to an `io.Reader`/`io.Writer`, using another string to derive the key                                           |
+| new stream     | `NewCFBStream`, `NewOFBStream`, `NewCTRStream`            | encrypt/decrypt data from/to an `io.Reader`/`io.Writer`, using your custom key, with options to control key length, iv, padding, etc.     |
+| simple AEAD    | `SimpleGCM`                                               | encrypt/decrypt a string with associated authenticated data, using another string to derive the key                                       |
+| new AEAD       | `NewGCM`                                                  | encrypt/decrypt a string with associated authenticated data, using your custom key, with options to control key length, iv, padding, etc. |
+| key derivation | `NewKey`, `NewAeskey`, `NewNonce`, `NewIV`, `NewRandomIv` | generate a secure key, aes key, nonce, iv from an arbitrary passphrase, with options to control key length, salt, etc.                    |
 
 ## Which mode should I use?
 
