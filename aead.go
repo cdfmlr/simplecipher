@@ -19,16 +19,16 @@ import (
 
 // gcm is the AES-GCM cipher mode implementation for the [Cipher] interface.
 type gcm struct {
-	key      Key
-	nonce    Key
-	provider *Provider
+	key    Key
+	nonce  Key
+	config *config
 }
 
 var _ Cipher = (*gcm)(nil)
 
 // newGCM is an internal constructor used by Provider.
 func newGCM(key, nonce Key, provider *Provider) Cipher {
-	return &gcm{key: key, nonce: nonce, provider: provider}
+	return &gcm{key: key, nonce: nonce, config: provider}
 }
 
 // NewGCM creates a new GCM cipher with the given key and nonce using the DefaultProvider.
@@ -81,7 +81,7 @@ func (g *gcm) Encrypt(plainText string) (cipherText string, err error) {
 
 	ciphertext := aesgcm.Seal(nil, nonce, plaintext, nil)
 
-	return g.provider.StringCodec.EncodeToString(ciphertext), nil
+	return g.config.StringCodec.EncodeToString(ciphertext), nil
 }
 
 // Decrypt decrypts the given ciphertext using GCM.
@@ -89,7 +89,7 @@ func (g *gcm) Encrypt(plainText string) (cipherText string, err error) {
 func (g *gcm) Decrypt(cipherText string) (plainText string, err error) {
 	defer recoverFromPanic(&err)
 
-	ciphertext, err := g.provider.StringCodec.DecodeString(cipherText)
+	ciphertext, err := g.config.StringCodec.DecodeString(cipherText)
 	if err != nil {
 		return "", err
 	}

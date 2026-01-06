@@ -1,12 +1,6 @@
 package simplecipher
 
 import (
-	"crypto/aes"
-	"crypto/rand"
-	"fmt"
-	mathrand "math/rand"
-	"time"
-
 	"golang.org/x/crypto/scrypt"
 )
 
@@ -250,11 +244,5 @@ func NewIv(passphrase string, options ...KeyGenOption) Key {
 
 // NewRandomIv creates a new random IV with [aes.BlockSize] bytes.
 func NewRandomIv() Key {
-	iv := make([]byte, aes.BlockSize)
-	_, err := rand.Read(iv)
-	if err == nil {
-		return Bytes(iv)
-	}
-
-	return DefaultProvider.NewIv(fmt.Sprint(mathrand.Float64(), time.Now()))
+	return DefaultProvider.NewRandomIv()
 }

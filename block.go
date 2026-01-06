@@ -23,16 +23,16 @@ import (
 
 // cbc is the AES-CBC cipher mode implementation for the [Cipher] interface.
 type cbc struct {
-	key      Key
-	iv       Key
-	provider *Provider
+	key    Key
+	iv     Key
+	config *config
 }
 
 var _ Cipher = (*cbc)(nil)
 
 // newCBC creates a new CBC cipher with the given key, iv, and provider.
 func newCBC(key, iv Key, provider *Provider) Cipher {
-	return &cbc{key: key, iv: iv, provider: provider}
+	return &cbc{key: key, iv: iv, config: provider}
 }
 
 // NewCBC creates a new CBC cipher with the given key and iv using the DefaultProvider.
@@ -86,7 +86,7 @@ func (c *cbc) Encrypt(plainText string) (cipherText string, err error) {
 	mode := cipher.NewCBCEncrypter(block, iv)
 	mode.CryptBlocks(ciphertext[aes.BlockSize:], plaintext)
 
-	return c.provider.StringCodec.EncodeToString(ciphertext), nil
+	return c.config.StringCodec.EncodeToString(ciphertext), nil
 }
 
 // Decrypt decrypts the given ciphertext using CBC.
@@ -97,7 +97,7 @@ func (c *cbc) Encrypt(plainText string) (cipherText string, err error) {
 func (c *cbc) Decrypt(cipherText string) (plainText string, err error) {
 	defer recoverFromPanic(&err)
 
-	ciphertext, err := c.provider.StringCodec.DecodeString(cipherText)
+	ciphertext, err := c.config.StringCodec.DecodeString(cipherText)
 	if err != nil {
 		return "", err
 	}
@@ -137,7 +137,7 @@ type simpleCBC struct {
 
 // newSimpleCBC creates a new AES-256-CBC cipher with the given key using the provider.
 func newSimpleCBC(keyPassphrase string, provider *Provider) Cipher {
-	return &simpleCBC{cbc: cbc{key: provider.NewAesKey(keyPassphrase), iv: provider.NewRandomIv(), provider: provider}}
+	return &simpleCBC{cbc: cbc{key: provider.NewAesKey(keyPassphrase), iv: provider.NewRandomIv(), config: provider}}
 }
 
 // SimpleCBC creates a new AES-256-CBC cipher with the given key using the DefaultProvider.
@@ -186,13 +186,13 @@ func (c *simpleCBC) Decrypt(cipherText string) (plainText string, err error) {
 // and decodes the ciphertext from a StringCodec string when Decrypting.
 type streamToBlock struct {
 	Stream
-	provider *Provider
+	config *config
 }
 
 var _ Cipher = (*streamToBlock)(nil)
 
 func newStreamToBlock(sc Stream, provider *Provider) Cipher {
-	return &streamToBlock{Stream: sc, provider: provider}
+	return &streamToBlock{Stream: sc, config: provider}
 }
 
 func (s *streamToBlock) Encrypt(plainText string) (cipherText string, err error) {
@@ -207,7 +207,7 @@ func (s *streamToBlock) Encrypt(plainText string) (cipherText string, err error)
 	}
 
 	cipherTextBytes := cipherTextBuffer.Bytes()
-	encodedCipherText := s.provider.StringCodec.EncodeToString(cipherTextBytes)
+	encodedCipherText := s.config.StringCodec.EncodeToString(cipherTextBytes)
 
 	return encodedCipherText, nil
 }
@@ -215,7 +215,7 @@ func (s *streamToBlock) Encrypt(plainText string) (cipherText string, err error)
 func (s *streamToBlock) Decrypt(cipherText string) (plainText string, err error) {
 	defer recoverFromPanic(&err)
 
-	cipherTextBytes, err := s.provider.StringCodec.DecodeString(cipherText)
+	cipherTextBytes, err := s.config.StringCodec.DecodeString(cipherText)
 	if err != nil {
 		return "", err
 	}

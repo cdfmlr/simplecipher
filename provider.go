@@ -8,6 +8,10 @@ import (
 	"time"
 )
 
+// config is an internal alias for Provider to make struct field names clearer.
+// Using "config" instead of "provider" better reflects its role as a configuration container.
+type config = Provider
+
 // Provider encapsulates the configuration for cipher operations.
 // It groups all cipher-related configuration and provides methods to create ciphers,
 // keys, and other cryptographic primitives.
@@ -319,6 +323,10 @@ func (p *Provider) NewIv(passphrase string, options ...KeyGenOption) Key {
 }
 
 // NewRandomIv creates a new random IV with [aes.BlockSize] bytes.
+//
+// It first attempts to use crypto/rand for cryptographically secure randomness.
+// If that fails, it falls back to generating an IV using the current time and
+// math/rand as a passphrase for key derivation.
 func (p *Provider) NewRandomIv() Key {
 	iv := make([]byte, aes.BlockSize)
 	_, err := rand.Read(iv)
@@ -326,5 +334,6 @@ func (p *Provider) NewRandomIv() Key {
 		return Bytes(iv)
 	}
 
+	// Fallback to deterministic generation if crypto/rand fails
 	return p.NewIv(fmt.Sprint(mathrand.Float64(), time.Now()))
 }

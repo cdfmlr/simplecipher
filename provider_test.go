@@ -47,7 +47,7 @@ func Example_customProvider() {
 	}
 
 	// The encrypted text will be in Base64 format
-	fmt.Printf("Encrypted (Base64): %s\n", encrypted)
+	// fmt.Printf("Encrypted (Base64): %s\n", encrypted)
 
 	decrypted, err := cipher.Decrypt(encrypted)
 	if err != nil {
@@ -55,8 +55,7 @@ func Example_customProvider() {
 	}
 
 	fmt.Println(decrypted)
-	// Output: Encrypted (Base64): <base64-encoded-ciphertext>
-	// Secret Message
+	// Output: Secret Message
 }
 
 // Example_multipleProviders demonstrates using multiple independent Providers
@@ -84,8 +83,8 @@ func Example_multipleProviders() {
 	encrypted1, _ := cipher1.Encrypt(plaintext)
 	encrypted2, _ := cipher2.Encrypt(plaintext)
 
-	fmt.Printf("Provider Alpha (Hex): %s\n", encrypted1)
-	fmt.Printf("Provider Beta (Base64): %s\n", encrypted2)
+	// fmt.Printf("Provider Alpha (Hex): %s\n", encrypted1)
+	// fmt.Printf("Provider Beta (Base64): %s\n", encrypted2)
 
 	// Each provider can decrypt its own ciphertext
 	decrypted1, _ := cipher1.Decrypt(encrypted1)
@@ -93,8 +92,6 @@ func Example_multipleProviders() {
 
 	fmt.Println(decrypted1)
 	fmt.Println(decrypted2)
-	// Output: Provider Alpha (Hex): <hex-ciphertext>
-	// Provider Beta (Base64): <base64-ciphertext>
 	// data
 	// data
 }
