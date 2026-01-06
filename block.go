@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
+
 	"github.com/cdfmlr/simplecipher/pkcs7"
 )
 
@@ -22,13 +23,19 @@ import (
 
 // cbc is the AES-CBC cipher mode implementation for the [Cipher] interface.
 type cbc struct {
-	key Key
-	iv  Key
+	key      Key
+	iv       Key
+	provider *Provider
 }
 
 var _ Cipher = (*cbc)(nil)
 
-// NewCBC creates a new CBC cipher with the given key and iv.
+// newCBC creates a new CBC cipher with the given key, iv, and provider.
+func newCBC(key, iv Key, provider *Provider) Cipher {
+	return &cbc{key: key, iv: iv, provider: provider}
+}
+
+// NewCBC creates a new CBC cipher with the given key and iv using the DefaultProvider.
 //
 // The iv will be prepended to the ciphertext during encryption,
 // and the first block of the ciphertext will be treated as the IV during decryption.
@@ -43,11 +50,11 @@ var _ Cipher = (*cbc)(nil)
 //
 // See also: [cipher.NewCBCDecrypter], [cipher.NewCBCEncrypter] for low-level usage.
 func NewCBC(key, iv Key) Cipher {
-	return &cbc{key: key, iv: iv}
+	return DefaultProvider.NewCBC(key, iv)
 }
 
 // Encrypt encrypts the given plaintext using CBC.
-// The ciphertext is returned with [DefaultStringCodec] encoding.
+// The ciphertext is returned with provider's StringCodec encoding.
 //
 // The IV will be prepended to the ciphertext as the first block.
 func (c *cbc) Encrypt(plainText string) (cipherText string, err error) {
@@ -79,18 +86,18 @@ func (c *cbc) Encrypt(plainText string) (cipherText string, err error) {
 	mode := cipher.NewCBCEncrypter(block, iv)
 	mode.CryptBlocks(ciphertext[aes.BlockSize:], plaintext)
 
-	return DefaultStringCodec.EncodeToString(ciphertext), nil
+	return c.provider.StringCodec.EncodeToString(ciphertext), nil
 }
 
 // Decrypt decrypts the given ciphertext using CBC.
-// The ciphertext must be a [DefaultStringCodec] string.
+// The ciphertext must be a provider's StringCodec string.
 //
 // The iv prepended to the ciphertext (the first block) will be used.
 // And the iv field of the cbc will be ignored.
 func (c *cbc) Decrypt(cipherText string) (plainText string, err error) {
 	defer recoverFromPanic(&err)
 
-	ciphertext, err := DefaultStringCodec.DecodeString(cipherText)
+	ciphertext, err := c.provider.StringCodec.DecodeString(cipherText)
 	if err != nil {
 		return "", err
 	}
@@ -128,7 +135,12 @@ type simpleCBC struct {
 	cbc
 }
 
-// SimpleCBC creates a new AES-256-CBC cipher with the given key.
+// newSimpleCBC creates a new AES-256-CBC cipher with the given key using the provider.
+func newSimpleCBC(keyPassphrase string, provider *Provider) Cipher {
+	return &simpleCBC{cbc: cbc{key: provider.NewAesKey(keyPassphrase), iv: provider.NewRandomIv(), provider: provider}}
+}
+
+// SimpleCBC creates a new AES-256-CBC cipher with the given key using the DefaultProvider.
 //
 // The keyPassphrase parameter can be any arbitrary string. It will be used to
 // derive the real key used in the CBC mode via scrypt.
@@ -141,7 +153,7 @@ type simpleCBC struct {
 //
 // See also: [NewCBC] for more control.
 func SimpleCBC(keyPassphrase string) Cipher {
-	return &simpleCBC{cbc: cbc{key: NewAesKey(keyPassphrase), iv: NewRandomIv()}}
+	return DefaultProvider.SimpleCBC(keyPassphrase)
 }
 
 func (c *simpleCBC) Encrypt(plainText string) (cipherText string, err error) {
@@ -170,16 +182,17 @@ func (c *simpleCBC) Decrypt(cipherText string) (plainText string, err error) {
 // and uses the EncryptStream and DecryptStream methods of the [Stream]
 // to perform the encryption and decryption.
 //
-// It also encodes the ciphertext with [DefaultStringCodec] when Encrypting,
-// and decodes the ciphertext from a [DefaultStringCodec] string when Decrypting.
+// It also encodes the ciphertext with provider's StringCodec when Encrypting,
+// and decodes the ciphertext from a StringCodec string when Decrypting.
 type streamToBlock struct {
 	Stream
+	provider *Provider
 }
 
 var _ Cipher = (*streamToBlock)(nil)
 
-func newStreamToBlock(sc Stream) Cipher {
-	return &streamToBlock{Stream: sc}
+func newStreamToBlock(sc Stream, provider *Provider) Cipher {
+	return &streamToBlock{Stream: sc, provider: provider}
 }
 
 func (s *streamToBlock) Encrypt(plainText string) (cipherText string, err error) {
@@ -194,7 +207,7 @@ func (s *streamToBlock) Encrypt(plainText string) (cipherText string, err error)
 	}
 
 	cipherTextBytes := cipherTextBuffer.Bytes()
-	encodedCipherText := DefaultStringCodec.EncodeToString(cipherTextBytes)
+	encodedCipherText := s.provider.StringCodec.EncodeToString(cipherTextBytes)
 
 	return encodedCipherText, nil
 }
@@ -202,7 +215,7 @@ func (s *streamToBlock) Encrypt(plainText string) (cipherText string, err error)
 func (s *streamToBlock) Decrypt(cipherText string) (plainText string, err error) {
 	defer recoverFromPanic(&err)
 
-	cipherTextBytes, err := DefaultStringCodec.DecodeString(cipherText)
+	cipherTextBytes, err := s.provider.StringCodec.DecodeString(cipherText)
 	if err != nil {
 		return "", err
 	}
@@ -219,7 +232,7 @@ func (s *streamToBlock) Decrypt(cipherText string) (plainText string, err error)
 	return string(plainTextBytes), nil
 }
 
-// NewCFB creates a new CFB cipher with the given key and iv.
+// NewCFB creates a new CFB cipher with the given key and iv using the DefaultProvider.
 //
 // The key must be 16, 24, or 32 bytes long to select AES-128, AES-192, or AES-256.
 // The iv must be [aes.BlockSize] bytes long.
@@ -231,7 +244,7 @@ func (s *streamToBlock) Decrypt(cipherText string) (plainText string, err error)
 //
 // See also: [cipher.NewCFBDecrypter], [cipher.NewCFBEncrypter] for low-level usage.
 func NewCFB(key, iv Key) Cipher {
-	return newStreamToBlock(NewCFBStream(key, iv))
+	return DefaultProvider.NewCFB(key, iv)
 }
 
 // SimpleCFB creates a new AES-256-CFB cipher with a key derived from
@@ -239,10 +252,10 @@ func NewCFB(key, iv Key) Cipher {
 //
 // See also: [NewCFB] for more control.
 func SimpleCFB(keyPassphrase string) Cipher {
-	return newStreamToBlock(SimpleCFBStream(keyPassphrase))
+	return DefaultProvider.SimpleCFB(keyPassphrase)
 }
 
-// NewOFB creates a new OFB cipher with the given key and iv.
+// NewOFB creates a new OFB cipher with the given key and iv using the DefaultProvider.
 //
 // The key must be 16, 24, or 32 bytes long to select AES-128, AES-192, or AES-256.
 // The iv must be [aes.BlockSize] bytes long.
@@ -254,7 +267,7 @@ func SimpleCFB(keyPassphrase string) Cipher {
 //
 // See also: [cipher.NewOFB] for low-level usage.
 func NewOFB(key, iv Key) Cipher {
-	return newStreamToBlock(NewOFBStream(key, iv))
+	return DefaultProvider.NewOFB(key, iv)
 }
 
 // SimpleOFB creates a new AES-256-OFB cipher with a key derived from
@@ -262,10 +275,10 @@ func NewOFB(key, iv Key) Cipher {
 //
 // See also: [NewOFB] for more control.
 func SimpleOFB(keyPassphrase string) Cipher {
-	return newStreamToBlock(SimpleOFBStream(keyPassphrase))
+	return DefaultProvider.SimpleOFB(keyPassphrase)
 }
 
-// NewCTR creates a new CTR cipher with the given key and iv.
+// NewCTR creates a new CTR cipher with the given key and iv using the DefaultProvider.
 //
 // The key must be 16, 24, or 32 bytes long to select AES-128, AES-192, or AES-256.
 // The iv must be [aes.BlockSize] bytes long.
@@ -277,7 +290,7 @@ func SimpleOFB(keyPassphrase string) Cipher {
 //
 // See also: [cipher.NewCTR] for low-level usage.
 func NewCTR(key, iv Key) Cipher {
-	return newStreamToBlock(NewCTRStream(key, iv))
+	return DefaultProvider.NewCTR(key, iv)
 }
 
 // SimpleCTR creates a new AES-256-CTR cipher with a key derived from
@@ -285,5 +298,5 @@ func NewCTR(key, iv Key) Cipher {
 //
 // See also: [NewCTR] for more control.
 func SimpleCTR(keyPassphrase string) Cipher {
-	return newStreamToBlock(SimpleCTRStream(keyPassphrase))
+	return DefaultProvider.SimpleCTR(keyPassphrase)
 }

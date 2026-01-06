@@ -19,13 +19,19 @@ import (
 
 // gcm is the AES-GCM cipher mode implementation for the [Cipher] interface.
 type gcm struct {
-	key   Key
-	nonce Key
+	key      Key
+	nonce    Key
+	provider *Provider
 }
 
 var _ Cipher = (*gcm)(nil)
 
-// NewGCM creates a new GCM cipher with the given key and nonce.
+// newGCM is an internal constructor used by Provider.
+func newGCM(key, nonce Key, provider *Provider) Cipher {
+	return &gcm{key: key, nonce: nonce, provider: provider}
+}
+
+// NewGCM creates a new GCM cipher with the given key and nonce using the DefaultProvider.
 // It's caller's responsibility to ensure the following:
 //
 //   - The key must be 16 or 32 bytes long to select AES-128 or AES-256.
@@ -35,10 +41,10 @@ var _ Cipher = (*gcm)(nil)
 //
 // See also: [cipher.NewGCM] for low-level usage.
 func NewGCM(key, nonce Key) Cipher {
-	return &gcm{key: key, nonce: nonce}
+	return DefaultProvider.NewGCM(key, nonce)
 }
 
-// SimpleGCM creates a new AES-256-GCM cipher from the given key and nonce.
+// SimpleGCM creates a new AES-256-GCM cipher from the given key and nonce using the DefaultProvider.
 //
 // The keyPassphrase and noncePassphrase parameters can be any arbitrary strings.
 // SimpleGCM will derive the real key and nonce used in the GCM mode
@@ -51,11 +57,11 @@ func NewGCM(key, nonce Key) Cipher {
 //
 // See also: [NewGCM]
 func SimpleGCM(keyPassphrase, noncePassphrase string) Cipher {
-	return NewGCM(NewAesKey(keyPassphrase), NewNonce(noncePassphrase))
+	return DefaultProvider.SimpleGCM(keyPassphrase, noncePassphrase)
 }
 
 // Encrypt encrypts the given plaintext using GCM.
-// The ciphertext is returned with [DefaultStringCodec] encoding.
+// The ciphertext is returned with the provider's StringCodec encoding.
 func (g *gcm) Encrypt(plainText string) (cipherText string, err error) {
 	defer recoverFromPanic(&err)
 
@@ -75,15 +81,15 @@ func (g *gcm) Encrypt(plainText string) (cipherText string, err error) {
 
 	ciphertext := aesgcm.Seal(nil, nonce, plaintext, nil)
 
-	return DefaultStringCodec.EncodeToString(ciphertext), nil
+	return g.provider.StringCodec.EncodeToString(ciphertext), nil
 }
 
 // Decrypt decrypts the given ciphertext using GCM.
-// The ciphertext must be a [DefaultStringCodec] string.
+// The ciphertext must be a string encoded with the provider's StringCodec.
 func (g *gcm) Decrypt(cipherText string) (plainText string, err error) {
 	defer recoverFromPanic(&err)
 
-	ciphertext, err := DefaultStringCodec.DecodeString(cipherText)
+	ciphertext, err := g.provider.StringCodec.DecodeString(cipherText)
 	if err != nil {
 		return "", err
 	}

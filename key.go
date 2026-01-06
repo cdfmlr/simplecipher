@@ -4,9 +4,10 @@ import (
 	"crypto/aes"
 	"crypto/rand"
 	"fmt"
-	"golang.org/x/crypto/scrypt"
 	mathrand "math/rand"
 	"time"
+
+	"golang.org/x/crypto/scrypt"
 )
 
 // This file provides a helper interface and struct to create AES keys.
@@ -136,24 +137,26 @@ func (k keyGen) Bytes() []byte {
 	return key
 }
 
-// DefaultSalt returns a fixed random string to make the key derivation more
-// secure. keyGen use this salt by default.
+// DefaultSalt is deprecated. Use DefaultProvider.SaltFunc instead to customize the salt.
 //
-//	simplecipher.DefaultSalt = func() string { return "NaCl" }
+// This variable is kept for backward compatibility.
+// It returns a fixed random string to make the key derivation more secure.
 //
-// Make sure to keep this function idempotence, that is, it should return the
+// Make sure to keep this function idempotent, that is, it should return the
 // same result for each call.
 // Otherwise, the decryption may fail due to the inconsistent key derivation.
 //
 // The returned salt string is recommended to be >= 8 bytes long.
 //
-// For any use case, it is recommended to customize this function
+// For any use case, it is recommended to customize the salt function
 // to generate a different salt for each of your applications.
 //
-// For real security, use New*() Ciphers with WithSalt() option to customize
+// For real security, use Provider methods with WithSalt() option to customize
 // the salt for each key derivation. Or considering use trusted remote procedure
 // calls to fetch the salt to avoid hardcoding the salt into the source code
 // and binaries.
+//
+// Deprecated: Use DefaultProvider.SaltFunc instead.
 var DefaultSalt = func() string {
 	return "3c7bef42a1524af19442b1b0a5751d29"
 }
@@ -206,22 +209,14 @@ const (
 	Aes256 KeyLen = 32
 )
 
-// NewAesKey creates a new AES key derived from the passphrase.
+// NewAesKey creates a new AES key derived from the passphrase using the DefaultProvider's salt.
 //
-// [Aes256] and [DefaultSalt] are used by default.
+// [Aes256] and [DefaultProvider.SaltFunc] are used by default.
 // Use [WithSalt] and [WithLen] options to customize the key derivation.
+//
+// For custom salt function, use DefaultProvider.NewAesKey() or create your own Provider.
 func NewAesKey(passphrase string, options ...KeyGenOption) Key {
-	keygen := newKeyGen(passphrase, Aes256, DefaultSalt())
-
-	for _, opt := range options {
-		opt(keygen)
-	}
-
-	if keygen.Len != Aes128 && keygen.Len != Aes192 && keygen.Len != Aes256 {
-		// invalid key length for AES, default to Aes256
-		keygen.Len = Aes256
-	}
-	return keygen
+	return DefaultProvider.NewAesKey(passphrase, options...)
 }
 
 //////// nonce //////////
@@ -231,34 +226,26 @@ const (
 	NonceSize KeyLen = 12
 )
 
-// NewNonce creates a new nonce with default [NonceSize].
+// NewNonce creates a new nonce with default [NonceSize] using the DefaultProvider's salt.
 //
 // The output key will be derived from the passphrase via
-// Sequential Memory-Hard Functions with [DefaultSalt].
+// Sequential Memory-Hard Functions with [DefaultProvider.SaltFunc].
+//
+// For custom salt function, use DefaultProvider.NewNonce() or create your own Provider.
 func NewNonce(passphrase string, options ...KeyGenOption) Key {
-	keygen := newKeyGen(passphrase, NonceSize, DefaultSalt())
-
-	for _, opt := range options {
-		opt(keygen)
-	}
-
-	return keygen
+	return DefaultProvider.NewNonce(passphrase, options...)
 }
 
 //////// iv //////////
 
-// NewIv creates a new IV with [aes.BlockSize] bytes.
+// NewIv creates a new IV with [aes.BlockSize] bytes using the DefaultProvider's salt.
 //
 // The output key will be derived from the passphrase via
-// Sequential Memory-Hard Functions with [DefaultSalt].
+// Sequential Memory-Hard Functions with [DefaultProvider.SaltFunc].
+//
+// For custom salt function, use DefaultProvider.NewIv() or create your own Provider.
 func NewIv(passphrase string, options ...KeyGenOption) Key {
-	keygen := newKeyGen(passphrase, aes.BlockSize, DefaultSalt())
-
-	for _, opt := range options {
-		opt(keygen)
-	}
-
-	return keygen
+	return DefaultProvider.NewIv(passphrase, options...)
 }
 
 // NewRandomIv creates a new random IV with [aes.BlockSize] bytes.
@@ -269,5 +256,5 @@ func NewRandomIv() Key {
 		return Bytes(iv)
 	}
 
-	return NewIv(fmt.Sprint(mathrand.Float64(), time.Now()))
+	return DefaultProvider.NewIv(fmt.Sprint(mathrand.Float64(), time.Now()))
 }

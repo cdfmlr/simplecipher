@@ -31,6 +31,11 @@ type steam struct {
 
 var _ Stream = (*steam)(nil)
 
+// newSteam is an internal constructor for steam cipher.
+func newSteam(key, iv Key, cipherStream cipherStreamBuilder) Stream {
+	return &steam{key: key, iv: iv, cipherStream: cipherStream}
+}
+
 // EncryptStream encrypts the given plaintext using CFB.
 // The ciphertext is written to the given writer without encoding.
 func (s *steam) EncryptStream(plainText io.Reader, cipherText io.Writer) (err error) {
@@ -131,7 +136,7 @@ const (
 
 //////// Exported Constructors ////////
 
-// NewCFBStream creates a new CFB stream cipher with the given key and iv.
+// NewCFBStream creates a new CFB stream cipher with the given key and iv using the DefaultProvider.
 //
 // The iv will be used as the initial value for the CFB mode.
 //
@@ -143,10 +148,10 @@ const (
 // Use [SimpleCFBStream] if you are not familiar with these.
 // See also: [cipher.NewCFBDecrypter], [cipher.NewCFBEncrypter] for low-level usage.
 func NewCFBStream(key, iv Key) Stream {
-	return &steam{key: key, iv: iv, cipherStream: cfbStreamBuilder}
+	return DefaultProvider.NewCFBStream(key, iv)
 }
 
-// SimpleCFBStream creates a new AES-256-CFB stream cipher from the given key and iv.
+// SimpleCFBStream creates a new AES-256-CFB stream cipher from the given key and iv using the DefaultProvider.
 //
 // An [Aes256] key for encryption/decryption will be derived from the
 // arbitrary keyPassphrase string via scrypt.
@@ -155,10 +160,10 @@ func NewCFBStream(key, iv Key) Stream {
 //
 // See also: [NewCFBStream] for more control.
 func SimpleCFBStream(keyPassphrase string) Stream {
-	return NewCFBStream(NewAesKey(keyPassphrase), NewRandomIv())
+	return DefaultProvider.SimpleCFBStream(keyPassphrase)
 }
 
-// NewOFBStream creates a new OFB stream cipher with the given key and iv.
+// NewOFBStream creates a new OFB stream cipher with the given key and iv using the DefaultProvider.
 //
 // The iv will be used as the initial value for the OFB mode.
 //
@@ -170,10 +175,10 @@ func SimpleCFBStream(keyPassphrase string) Stream {
 // Use [SimpleOFBStream] if you are not familiar with these.
 // See also: [cipher.NewOFB] for low-level usage.
 func NewOFBStream(key, iv Key) Stream {
-	return &steam{key: key, iv: iv, cipherStream: ofbStreamBuilder}
+	return DefaultProvider.NewOFBStream(key, iv)
 }
 
-// SimpleOFBStream creates a new AES-256-OFB stream cipher from the given key and iv.
+// SimpleOFBStream creates a new AES-256-OFB stream cipher from the given key and iv using the DefaultProvider.
 //
 // An [Aes256] key for encryption/decryption will be derived from the
 // arbitrary keyPassphrase string via scrypt.
@@ -182,10 +187,10 @@ func NewOFBStream(key, iv Key) Stream {
 //
 // See also: [NewOFBStream] for more control.
 func SimpleOFBStream(keyPassphrase string) Stream {
-	return NewOFBStream(NewAesKey(keyPassphrase), NewRandomIv())
+	return DefaultProvider.SimpleOFBStream(keyPassphrase)
 }
 
-// NewCTRStream creates a new CTR stream cipher with the given key and iv.
+// NewCTRStream creates a new CTR stream cipher with the given key and iv using the DefaultProvider.
 //
 // The iv will be used as the initial value for the CTR mode.
 //
@@ -197,10 +202,10 @@ func SimpleOFBStream(keyPassphrase string) Stream {
 // Use [SimpleCTRStream] if you are not familiar with these.
 // See also: [cipher.NewCTR] for low-level usage.
 func NewCTRStream(key, iv Key) Stream {
-	return &steam{key: key, iv: iv, cipherStream: ctrStreamBuilder}
+	return DefaultProvider.NewCTRStream(key, iv)
 }
 
-// SimpleCTRStream creates a new AES-256-CTR stream cipher from the given key and iv.
+// SimpleCTRStream creates a new AES-256-CTR stream cipher from the given key and iv using the DefaultProvider.
 //
 // An [Aes256] key for encryption/decryption will be derived from the
 // arbitrary keyPassphrase string via scrypt.
@@ -209,5 +214,5 @@ func NewCTRStream(key, iv Key) Stream {
 //
 // See also: [NewCTRStream] for more control.
 func SimpleCTRStream(keyPassphrase string) Stream {
-	return NewCTRStream(NewAesKey(keyPassphrase), NewRandomIv())
+	return DefaultProvider.SimpleCTRStream(keyPassphrase)
 }
