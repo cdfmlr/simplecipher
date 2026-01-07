@@ -1,5 +1,5 @@
 module github.com/cdfmlr/simplecipher
 
-go 1.23.1
+go 1.24.0
 
-require golang.org/x/crypto v0.27.0
+require golang.org/x/crypto v0.46.0
