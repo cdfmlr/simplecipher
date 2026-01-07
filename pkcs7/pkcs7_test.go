@@ -82,20 +82,20 @@ type assert struct{}
 
 func (a *assert) Equal(t *testing.T, expected, actual interface{}, msgAndArgs ...interface{}) {
 	if !reflect.DeepEqual(expected, actual) {
-		t.Errorf(fmt.Sprintf("Not equal: expected %v, actual %v", expected, actual))
+		t.Errorf("Not equal: expected %v, actual %v", expected, actual)
 	}
 }
 
 func (a *assert) NoError(t *testing.T, err error, msgAndArgs ...interface{}) {
 	if err != nil {
-		t.Errorf(fmt.Sprintf("Unexpected error: %v", err))
+		t.Errorf("Unexpected error: %v", err)
 	}
 }
 
 func (a *assert) Panics(t *testing.T, f func(), msgAndArgs ...interface{}) {
 	defer func() {
 		if r := recover(); r == nil {
-			t.Errorf(fmt.Sprintf("Function did not panic"))
+			t.Errorf("Function did not panic")
 		}
 	}()
 	f()
