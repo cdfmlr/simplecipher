@@ -6,12 +6,25 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 )
 
-// This file provides a TestAllFuzz(*testing.T) that runs all
+// default fuzz time in seconds for each fuzz test
+// modify this or provide an env variable to change the duration (FUZZ_SECONDS)
+var fuzzSeconds = 10
+
+func init() {
+	if v := os.Getenv("FUZZ_SECONDS"); v != "" {
+		if sec, err := strconv.Atoi(v); err == nil && sec > 0 {
+			fuzzSeconds = sec
+		}
+	}
+}
+
+// This file provides a Test_Z_AllFuzz(*testing.T) that runs all
 // FuzzTests(*testing.F) found in current directory.
 //
 // This makes `go test ./...` running all fuzz tests in a reasonable duration,
@@ -111,7 +124,7 @@ func TestAllFuzz(t *testing.T) {
 	}
 	t.Logf("Found %v fuzz tests: %v", len(fuzzFuncs), fuzzFuncs)
 
-	fuzzTime := 10 * time.Second
+	fuzzTime := time.Duration(fuzzSeconds) * time.Second
 
 	for _, f := range fuzzFuncs {
 		t.Run(f, func(t *testing.T) {
