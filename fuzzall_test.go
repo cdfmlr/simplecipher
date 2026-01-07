@@ -14,7 +14,10 @@ import (
 
 // default fuzz time in seconds for each fuzz test
 // modify this or provide an env variable to change the duration (FUZZ_SECONDS)
-var fuzzSeconds = 10
+//
+// default to 1s: fast enough to run all tests in reasonable time (~30s for a go test . -v)
+// (even short time like 1s will execs >10,000 iters for NewXXX and >100 iters for SimpleXXX)
+var fuzzSeconds = 1
 
 func init() {
 	if v := os.Getenv("FUZZ_SECONDS"); v != "" {

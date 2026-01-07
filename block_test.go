@@ -16,13 +16,13 @@ import (
 //
 // It repeats the same process with another cipher instance created
 // to check if the implementation is deterministic.
-func testCipher(name string, t *testing.T, newCipher func() Cipher, plaintext string) {
+func testCipher(name string, t *testing.T, newCipher func(p *Provider) Cipher, plaintext string) {
 	// Make sure not using the default salt value
 	// for (maybe) a tiny bit of more security for lazy users who don't
 	// provide their own salt.
-	DefaultSalt = func() string { return "testsalt" }
+	p := testProvider()
 
-	cipher := newCipher()
+	cipher := newCipher(p)
 
 	ciphertext, err := cipher.Encrypt(plaintext)
 	if err != nil {
@@ -38,7 +38,7 @@ func testCipher(name string, t *testing.T, newCipher func() Cipher, plaintext st
 		t.Fatalf("%v: decrypted (%s) != plaintext (%s)", name, decrypted, plaintext)
 	}
 
-	anotherCipher := newCipher()
+	anotherCipher := newCipher(p)
 
 	// encrypting by cipher and decrypting by anotherCipher
 
@@ -66,10 +66,10 @@ func testCipher(name string, t *testing.T, newCipher func() Cipher, plaintext st
 
 // testErrorCipher tests the given cipher implementation with a wrong setting.
 // It is expected to error out (but not panic) when encrypting or decrypting.
-func testErrorCipher(name string, t *testing.T, newCipher func() Cipher, plaintext string) {
-	DefaultSalt = func() string { return "testsalt" }
+func testErrorCipher(name string, t *testing.T, newCipher func(p *Provider) Cipher, plaintext string) {
+	p := testProvider()
 
-	cipher := newCipher()
+	cipher := newCipher(p)
 
 	errCount := 0
 
@@ -102,8 +102,8 @@ func FuzzNewCBC(f *testing.F) {
 	f.Add([]byte("badkey"), []byte("badnonce"), "badplaintext")
 
 	f.Fuzz(func(t *testing.T, key, iv []byte, plaintext string) {
-		createNewCBC := func() Cipher {
-			return NewCBC(Bytes(key), Bytes(iv))
+		createNewCBC := func(p *Provider) Cipher {
+			return p.NewCBC(Bytes(key), Bytes(iv))
 		}
 
 		if len(key) != 16 && len(key) != 24 && len(key) != 32 {
@@ -115,10 +115,10 @@ func FuzzNewCBC(f *testing.F) {
 			return
 		}
 		// "output smaller than input" is no longer happening after prepending iv to ciphertext.
-		//if len(plaintext) <= len(key)+len(iv) {
+		// if len(plaintext) <= len(key)+len(iv) {
 		//	testErrorCipher("outputSmallerThenInput", t, createNewCBC, plaintext)
 		//	return
-		//}
+		// }
 		if len(plaintext)%aes.BlockSize != 0 {
 			testErrorCipher("badPlaintextLen", t, createNewCBC, plaintext)
 			return
@@ -134,8 +134,8 @@ func FuzzSimpleCBC(f *testing.F) {
 	f.Add("key", "plain-text-plain")
 
 	f.Fuzz(func(t *testing.T, key, plaintext string) {
-		createSimpleCBC := func() Cipher {
-			return SimpleCBC(key)
+		createSimpleCBC := func(p *Provider) Cipher {
+			return p.SimpleCBC(key)
 		}
 
 		testCipher("", t, createSimpleCBC, plaintext)
@@ -143,10 +143,10 @@ func FuzzSimpleCBC(f *testing.F) {
 }
 
 func FuzzNewStreamAsBlock(f *testing.F) {
-	newBlocks := map[string]func(key, iv Key) Cipher{
-		"NewCFB": NewCFB,
-		"NewCTR": NewCTR,
-		"NewOFB": NewOFB,
+	newBlocks := map[string]func(p *Provider, key, iv Key) Cipher{
+		"NewCFB": func(p *Provider, key, iv Key) Cipher { return p.NewCFB(key, iv) },
+		"NewCTR": func(p *Provider, key, iv Key) Cipher { return p.NewCTR(key, iv) },
+		"NewOFB": func(p *Provider, key, iv Key) Cipher { return p.NewOFB(key, iv) },
 	}
 
 	// key: bytes, nonce: bytes, plaintext: string
@@ -156,8 +156,8 @@ func FuzzNewStreamAsBlock(f *testing.F) {
 
 	f.Fuzz(func(t *testing.T, key, iv []byte, plaintext string) {
 		for name, newBlock := range newBlocks {
-			createNewBlock := func() Cipher {
-				return newBlock(Bytes(key), Bytes(iv))
+			createNewBlock := func(p *Provider) Cipher {
+				return newBlock(p, Bytes(key), Bytes(iv))
 			}
 
 			if len(key) != 16 && len(key) != 24 && len(key) != 32 {
@@ -175,10 +175,10 @@ func FuzzNewStreamAsBlock(f *testing.F) {
 }
 
 func FuzzSimpleStreamAsBlock(f *testing.F) {
-	newBlocks := map[string]func(key string) Cipher{
-		"SimpleCFB": SimpleCFB,
-		"SimpleCTR": SimpleCTR,
-		"SimpleOFB": SimpleOFB,
+	newBlocks := map[string]func(*Provider, string) Cipher{
+		"SimpleCFB": func(p *Provider, key string) Cipher { return p.SimpleCFB(key) },
+		"SimpleCTR": func(p *Provider, key string) Cipher { return p.SimpleCTR(key) },
+		"SimpleOFB": func(p *Provider, key string) Cipher { return p.SimpleOFB(key) },
 	}
 
 	// key: string, plaintext: string
@@ -187,8 +187,8 @@ func FuzzSimpleStreamAsBlock(f *testing.F) {
 
 	f.Fuzz(func(t *testing.T, key, plaintext string) {
 		for name, newBlock := range newBlocks {
-			createSimpleBlock := func() Cipher {
-				return newBlock(key)
+			createSimpleBlock := func(p *Provider) Cipher {
+				return newBlock(p, key)
 			}
 
 			testCipher(name, t, createSimpleBlock, plaintext)
@@ -197,12 +197,15 @@ func FuzzSimpleStreamAsBlock(f *testing.F) {
 }
 
 func ExampleSimpleCTR() {
-	DefaultSalt = func() string { return "NaCl" }
+	sc := &Provider{
+		StringCodec: HexCodec,
+		SaltFunc:    func() string { return "NaCl" },
+	}
 
 	key := "my-secret-key"
 	plainText := "Hello, World!"
 
-	cipher := SimpleCTR(key)
+	cipher := sc.SimpleCTR(key)
 
 	encrypted, _ := cipher.Encrypt(plainText)
 	// fmt.Println(encrypted)
@@ -234,8 +237,8 @@ func ExampleNewCTR() {
 	hexKey := hex.EncodeToString([]byte(rawKey))
 	hexIv := hex.EncodeToString([]byte(rawIv))
 
-	//fmt.Println("key in hex:", hexKey)
-	//fmt.Println("iv in hex:", hexIv)
+	// fmt.Println("key in hex:", hexKey)
+	// fmt.Println("iv in hex:", hexIv)
 
 	opensslCmd := exec.Command("openssl", "enc", "-d", "-aes-256-ctr", "-K", hexKey, "-iv", hexIv)
 
@@ -251,3 +254,5 @@ func ExampleNewCTR() {
 	// decrypted by simplecipher: Hello, World!
 	// decrypted by openssl: Hello, World!
 }
+
+// TODO: more openssl interop tests

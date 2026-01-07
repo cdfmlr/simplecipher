@@ -7,7 +7,7 @@ import (
 )
 
 func TestBytes_Bytes(t *testing.T) {
-	DefaultSalt = func() string { return "testsalt" }
+	// provider does not determine bytesKey behavior
 
 	tests := []struct {
 		name string
@@ -40,7 +40,7 @@ func TestBytes_Bytes(t *testing.T) {
 }
 
 func TestString_Bytes(t *testing.T) {
-	DefaultSalt = func() string { return "testsalt" }
+	// provider does not determine stringKey behavior
 
 	tests := []struct {
 		name string
@@ -68,7 +68,7 @@ func TestString_Bytes(t *testing.T) {
 }
 
 func Test_keyGen_Bytes(t *testing.T) {
-	DefaultSalt = func() string { return "testsalt" }
+	// TODO: KDF algorithm will be a part of the Provider in the future
 
 	type fields struct {
 		Passphrase string
@@ -146,7 +146,7 @@ func Test_keyGen_Bytes(t *testing.T) {
 }
 
 func TestNewAesKey(t *testing.T) {
-	DefaultSalt = func() string { return "testsalt" }
+	DefaultProvider.SaltFunc = func() string { return "testsalt" } // TODO: KDF algorithm will be a part of the Provider in the future
 
 	type args struct {
 		passphrase string
@@ -216,7 +216,7 @@ func TestNewAesKey(t *testing.T) {
 }
 
 func TestNewNonce(t *testing.T) {
-	DefaultSalt = func() string { return "testsalt" }
+	DefaultProvider.SaltFunc = func() string { return "testsalt" } // TODO: Provider += KDF
 
 	type args struct {
 		passphrase string
@@ -276,7 +276,7 @@ func TestNewNonce(t *testing.T) {
 }
 
 func TestNewIv(t *testing.T) {
-	DefaultSalt = func() string { return "testsalt" }
+	DefaultProvider.SaltFunc = func() string { return "testsalt" } // TODO: Provider += KDF
 
 	type args struct {
 		passphrase string
@@ -336,7 +336,7 @@ func TestNewIv(t *testing.T) {
 }
 
 func TestNewRandomIv(t *testing.T) {
-	DefaultSalt = func() string { return "testsalt" }
+	DefaultProvider.SaltFunc = func() string { return "testsalt" } // TODO: Provider += KDF
 
 	iv1 := NewRandomIv()
 	iv2 := NewRandomIv()

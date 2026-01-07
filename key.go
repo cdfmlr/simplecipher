@@ -21,7 +21,7 @@ type Key interface {
 	Bytes() []byte
 }
 
-//////// Bytes & String //////////
+// ////// Bytes & String //////////
 
 // bytesKey is a simple type to convert a byte slice to a [Key].
 type bytesKey []byte
@@ -49,7 +49,7 @@ func String(s string) Key {
 	return stringKey(s)
 }
 
-//////// KeyGen //////////
+// ////// KeyGen //////////
 
 // keyGen derives a key from a passphrase and salt
 // using Sequential Memory-Hard Functions.
@@ -131,31 +131,7 @@ func (k keyGen) Bytes() []byte {
 	return key
 }
 
-// DefaultSalt is deprecated. Use DefaultProvider.SaltFunc instead to customize the salt.
-//
-// This variable is kept for backward compatibility.
-// It returns a fixed random string to make the key derivation more secure.
-//
-// Make sure to keep this function idempotent, that is, it should return the
-// same result for each call.
-// Otherwise, the decryption may fail due to the inconsistent key derivation.
-//
-// The returned salt string is recommended to be >= 8 bytes long.
-//
-// For any use case, it is recommended to customize the salt function
-// to generate a different salt for each of your applications.
-//
-// For real security, use Provider methods with WithSalt() option to customize
-// the salt for each key derivation. Or considering use trusted remote procedure
-// calls to fetch the salt to avoid hardcoding the salt into the source code
-// and binaries.
-//
-// Deprecated: Use DefaultProvider.SaltFunc instead.
-var DefaultSalt = func() string {
-	return "3c7bef42a1524af19442b1b0a5751d29"
-}
-
-//////// Option for KeyGen //////////
+// ////// Option for KeyGen //////////
 
 // KeyGenOption is a functional option to customize the KeyGen struct.
 type KeyGenOption func(gen *keyGen)
@@ -193,7 +169,7 @@ func WithLen(keyLen KeyLen) KeyGenOption {
 	}
 }
 
-//////// AES //////////
+// ////// AES //////////
 
 // Available [KeyLen] values for AES keys are 16, 24 and 32 bytes
 // for [Aes128], [Aes192], and [Aes256] respectively.
@@ -213,7 +189,7 @@ func NewAesKey(passphrase string, options ...KeyGenOption) Key {
 	return DefaultProvider.NewAesKey(passphrase, options...)
 }
 
-//////// nonce //////////
+// ////// nonce //////////
 
 // NonceSize is the default size of the nonce for AEAD ciphers.
 const (
@@ -230,7 +206,7 @@ func NewNonce(passphrase string, options ...KeyGenOption) Key {
 	return DefaultProvider.NewNonce(passphrase, options...)
 }
 
-//////// iv //////////
+// ////// iv //////////
 
 // NewIv creates a new IV with [aes.BlockSize] bytes using the DefaultProvider's salt.
 //

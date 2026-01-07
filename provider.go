@@ -29,15 +29,7 @@ type Provider struct {
 // It uses HexCodec for string encoding and delegates to DefaultSalt for the salt function.
 var DefaultProvider = &Provider{
 	StringCodec: HexCodec,
-	SaltFunc:    nil, // will be initialized in init()
-}
-
-func init() {
-	// Wire DefaultProvider.SaltFunc to reference DefaultSalt
-	// This allows tests to override DefaultSalt and have DefaultProvider use the new value
-	DefaultProvider.SaltFunc = func() string {
-		return DefaultSalt()
-	}
+	SaltFunc:    func() string { return "5f11a4921aea524b9d3cb7f2514b0724" },
 }
 
 // ============ Block Cipher Methods ============

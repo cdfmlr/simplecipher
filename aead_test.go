@@ -12,8 +12,8 @@ func FuzzNewGCM(f *testing.F) {
 	f.Add([]byte("key0key1key2key3key4key5key6key7"), []byte("nonce0nonce1"), "plain-text-plain")
 
 	f.Fuzz(func(t *testing.T, key, nonce []byte, plaintext string) {
-		createGCM := func() Cipher {
-			return NewGCM(Bytes(key), Bytes(nonce))
+		createGCM := func(p *Provider) Cipher {
+			return p.NewGCM(Bytes(key), Bytes(nonce))
 		}
 
 		if len(key) != 16 && len(key) != 24 && len(key) != 32 {
@@ -34,8 +34,8 @@ func FuzzSimpleGCM(f *testing.F) {
 	f.Add("key", "nonce", "plaintext")
 
 	f.Fuzz(func(t *testing.T, key, nonce, plaintext string) {
-		createSimpleGCM := func() Cipher {
-			return SimpleGCM(key, nonce)
+		createSimpleGCM := func(p *Provider) Cipher {
+			return p.SimpleGCM(key, nonce)
 		}
 
 		testCipher("", t, createSimpleGCM, plaintext)
@@ -43,14 +43,17 @@ func FuzzSimpleGCM(f *testing.F) {
 }
 
 func ExampleSimpleGCM() {
-	DefaultSalt = func() string { return "NaCl" }
+	sc := Provider{
+		StringCodec: HexCodec,
+		SaltFunc:    func() string { return "NaCl" },
+	}
 
 	key := "my-secret-key"
 	nonce := time.Now().Format(time.DateOnly)
 
 	plainText := "Hello, World!"
 
-	cipher := SimpleGCM(key, nonce)
+	cipher := sc.SimpleGCM(key, nonce)
 
 	encrypted, _ := cipher.Encrypt(plainText)
 	// fmt.Println(encrypted)

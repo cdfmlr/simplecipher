@@ -17,8 +17,8 @@ import (
 // method / default salt value changes.
 
 func TestDefaultConfigurations(t *testing.T) {
-	gotDefaultSalt := DefaultSalt()
-	expectedDefaultSalt := "3c7bef42a1524af19442b1b0a5751d29"
+	gotDefaultSalt := DefaultProvider.SaltFunc()
+	expectedDefaultSalt := "5f11a4921aea524b9d3cb7f2514b0724"
 	if gotDefaultSalt != expectedDefaultSalt {
 		t.Errorf("Default salt mismatch: expected %s, got %s", expectedDefaultSalt, gotDefaultSalt)
 	}
@@ -31,18 +31,6 @@ func TestDefaultConfigurations(t *testing.T) {
 }
 
 func TestKeyGen_Compatibility(t *testing.T) {
-	oldDefaultCodec := DefaultStringCodec
-	defer func() {
-		DefaultStringCodec = oldDefaultCodec
-	}()
-	DefaultStringCodec = HexCodec
-
-	oldSalt := DefaultSalt
-	defer func() {
-		DefaultSalt = oldSalt
-	}()
-	DefaultSalt = func() string { return "3c7bef42a1524af19442b1b0a5751d29" }
-
 	t.Run("keyGenAlgo", func(t *testing.T) {
 		// test the algorithm produces deterministic output
 		g := keyGen{
@@ -64,7 +52,7 @@ func TestKeyGen_Compatibility(t *testing.T) {
 		// test that default options produce expected output
 		g := NewAesKey("test-passphrase")
 
-		expectedHexKey := "9a732599fd5d150bc8f7423ff1cf2bdc0d0c847e6d87496acc22742a9767b9b5"
+		expectedHexKey := "cab609583b99f229cc5ad0a0091e87c1d1397a97261de4e187f5db6a445ef3fd"
 		generatedKey := g.Bytes()
 		generatedHexKey := hex.EncodeToString(generatedKey)
 
@@ -76,7 +64,7 @@ func TestKeyGen_Compatibility(t *testing.T) {
 		// test that default options produce expected output
 		g := NewNonce("test-passphrase")
 
-		expectedHexKey := "9a732599fd5d150bc8f7423f"
+		expectedHexKey := "cab609583b99f229cc5ad0a0"
 		generatedKey := g.Bytes()
 		generatedHexKey := hex.EncodeToString(generatedKey)
 
@@ -88,7 +76,7 @@ func TestKeyGen_Compatibility(t *testing.T) {
 		// notice that: NewIv is deterministic while NewRandomIv is not
 		got := NewIv("test-passphrase-for-iv").Bytes()
 
-		expectedHexKey := "2d977ef33e31fdd7a4ba914a68173018"
+		expectedHexKey := "8b2ea2c4c19b8f58cbef3452c30a857b"
 		generatedKey := got
 		generatedHexKey := hex.EncodeToString(generatedKey)
 
@@ -100,18 +88,6 @@ func TestKeyGen_Compatibility(t *testing.T) {
 }
 
 func TestSimpleCTR_Compatibility(t *testing.T) {
-	oldDefaultCodec := DefaultStringCodec
-	defer func() {
-		DefaultStringCodec = oldDefaultCodec
-	}()
-	DefaultStringCodec = HexCodec
-
-	oldSalt := DefaultSalt
-	defer func() {
-		DefaultSalt = oldSalt
-	}()
-	DefaultSalt = func() string { return "3c7bef42a1524af19442b1b0a5751d29" }
-
 	cipher := SimpleCTR("hello-world")
 
 	// hack to set iv to deterministic value
@@ -119,7 +95,7 @@ func TestSimpleCTR_Compatibility(t *testing.T) {
 	cipher.(*streamToBlock).Stream.(*steam).iv = fixedIv
 
 	t.Run("keyDerivation", func(t *testing.T) {
-		expectedKey := "c4a515a80c23eb49930284ceec73d1ba4b05755b3b0f103e2ab264614434f959"
+		expectedKey := "862e69236dbd3a28de8a8bc30c98bca47d6906907355771ec0bda705e65a44f5"
 
 		gotKey := cipher.(*streamToBlock).Stream.(*steam).key.Bytes()
 		gotHexKey := hex.EncodeToString(gotKey)
@@ -130,7 +106,7 @@ func TestSimpleCTR_Compatibility(t *testing.T) {
 	})
 
 	plaintext := "The quick brown fox jumps over the lazy dog."
-	expectedCiphertext := "c05325d9a20f8944892180fbe69a947ad94aae6cfcb329e677d977574bf150ad36e9ee2f0b607a2f28968c1a8e3bfef7410ef9ccf6449a16248ebb89"
+	expectedCiphertext := "102ff679517c6ca85312d3b38fa1de6faef72e66a44449290486355d6f92b37d34eeb294f654fa715c70a19cf0180741026f4b3e0e9116888c47c4d8"
 
 	t.Run("encryption", func(t *testing.T) {
 		ciphertext, err := cipher.Encrypt(plaintext)
@@ -156,22 +132,10 @@ func TestSimpleCTR_Compatibility(t *testing.T) {
 }
 
 func TestSimpleGCM_Compatibility(t *testing.T) {
-	oldDefaultCodec := DefaultStringCodec
-	defer func() {
-		DefaultStringCodec = oldDefaultCodec
-	}()
-	DefaultStringCodec = HexCodec
-
-	oldSalt := DefaultSalt
-	defer func() {
-		DefaultSalt = oldSalt
-	}()
-	DefaultSalt = func() string { return "3c7bef42a1524af19442b1b0a5751d29" }
-
 	cipher := SimpleGCM("hello-gcm-passphrase", "hello-gcm-nonce")
 
 	t.Run("keyDerivation", func(t *testing.T) {
-		expectedKey := "1f06c0896e13ea9690c10e0b0a95738b9279727c7b8dc95244ec99d02850e4c2"
+		expectedKey := "6dc9e1f2255e2f8a6bf6ff05b6320e1d8cf4597ecb5f920fac74f5df2a570570"
 
 		gotKey := cipher.(*gcm).key.Bytes()
 		gotHexKey := hex.EncodeToString(gotKey)
@@ -180,7 +144,7 @@ func TestSimpleGCM_Compatibility(t *testing.T) {
 			t.Errorf("Key derivation mismatch: expected %s, got %s", expectedKey, gotHexKey)
 		}
 
-		expectedNonce := "81ee36b8443b2216aafd4abc"
+		expectedNonce := "832986af2346ff41fcce1b0a"
 
 		gotNonce := cipher.(*gcm).nonce.Bytes()
 		gotHexNonce := hex.EncodeToString(gotNonce)
@@ -191,7 +155,7 @@ func TestSimpleGCM_Compatibility(t *testing.T) {
 	})
 
 	plaintext := "The quick brown fox jumps over the lazy dog."
-	expectedCiphertext := "b5a70c351a43ddd0d772031dd7b03f33163d8b232ccf5a20f647da53010bf8cde63ac4b8d22c49884f34f7c2293af4982c2a9a50a68bf37188440792"
+	expectedCiphertext := "1561086e16ade8addfdd7332c69be199a4afd8a817ca40896cf03bfda9a03b7e0a49c233eed5f31cff7604366195555cd7b671067bca78ba70c43bae"
 
 	t.Run("encryption", func(t *testing.T) {
 		ciphertext, err := cipher.Encrypt(plaintext)

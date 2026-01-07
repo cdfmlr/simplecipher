@@ -5,6 +5,15 @@ import (
 	"io"
 )
 
+// testProvider returns a Provider instance for testing purposes.
+// with Hex encoding and a fixed salt.
+func testProvider() *Provider {
+	return &Provider{
+		StringCodec: HexCodec,
+		SaltFunc:    func() string { return "testsalt" },
+	}
+}
+
 // Example_defaultProvider demonstrates using the DefaultProvider for backward compatibility.
 func Example_defaultProvider() {
 	// This is the traditional way of using simplecipher
@@ -205,27 +214,4 @@ func Example_customKeyAndIV() {
 
 	fmt.Println(decrypted)
 	// Output: Encrypted with custom key and IV
-}
-
-// Example_providerComparison shows the difference between using DefaultProvider
-// (backward compatible) and custom Provider (recommended for new code).
-func Example_providerComparison() {
-	// OLD WAY (still supported for backward compatibility)
-	// Modifying global DefaultSalt affects all subsequent cipher creation
-	DefaultSalt = func() string { return "old-style-salt" }
-	cipherOld := SimpleCTR("password")
-	_ = cipherOld
-
-	// NEW WAY (recommended)
-	// Create isolated providers that don't affect global state
-	myProvider := &Provider{
-		StringCodec: HexCodec,
-		SaltFunc:    func() string { return "new-style-salt" },
-	}
-	cipherNew := myProvider.SimpleCTR("password")
-	_ = cipherNew
-
-	// The new way is thread-safe and doesn't have global side effects
-	fmt.Println("Both approaches work, but Provider pattern is recommended for new code")
-	// Output: Both approaches work, but Provider pattern is recommended for new code
 }

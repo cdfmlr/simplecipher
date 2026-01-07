@@ -7,12 +7,12 @@ import (
 	"testing"
 )
 
-func testErrorStream(name string, t *testing.T, newStream func() Stream, plaintext string) {
-	DefaultSalt = func() string { return "testsalt" }
+func testErrorStream(name string, t *testing.T, newStream func(p *Provider) Stream, plaintext string) {
+	p := testProvider()
 
 	errorCount := 0
 
-	stream := newStream()
+	stream := newStream(p)
 
 	plaintextReader := bytes.NewReader([]byte(plaintext))
 	ciphertextWriter := new(bytes.Buffer)
@@ -41,10 +41,10 @@ func testErrorStream(name string, t *testing.T, newStream func() Stream, plainte
 	}
 }
 
-func testStream(name string, t *testing.T, newStream func() Stream, plaintext string) {
-	DefaultSalt = func() string { return "testsalt" }
+func testStream(name string, t *testing.T, newStream func(p *Provider) Stream, plaintext string) {
+	p := testProvider()
 
-	stream := newStream()
+	stream := newStream(p)
 
 	plaintextReader := bytes.NewReader([]byte(plaintext))
 	ciphertextWriter := new(bytes.Buffer)
@@ -70,7 +70,7 @@ func testStream(name string, t *testing.T, newStream func() Stream, plaintext st
 
 	// encrypting by stream and decrypting by anotherStream
 
-	anotherStream := newStream()
+	anotherStream := newStream(p)
 
 	anotherDecryptedWriter := new(bytes.Buffer)
 	ciphertextReader = bytes.NewReader([]byte(ciphertext))
@@ -99,13 +99,13 @@ func testStream(name string, t *testing.T, newStream func() Stream, plaintext st
 	}
 }
 
-func fuzzNewStream(f *testing.F, newStream func(key, iv []byte) Stream) {
+func fuzzNewStream(f *testing.F, newStream func(p *Provider, key, iv []byte) Stream) {
 	// key: bytes, iv: bytes, plaintext: string
 	f.Add([]byte("key0key1key2key3"), []byte("iv00iv01iv02iv03"), "plain-text-plain-text000")
 
 	f.Fuzz(func(t *testing.T, key, iv []byte, plaintext string) {
-		newStream := func() Stream {
-			return newStream(key, iv)
+		newStream := func(p *Provider) Stream {
+			return newStream(p, key, iv)
 		}
 
 		if len(key) != 16 && len(key) != 24 && len(key) != 32 {
@@ -121,13 +121,13 @@ func fuzzNewStream(f *testing.F, newStream func(key, iv []byte) Stream) {
 	})
 }
 
-func fuzzSimpleStream(f *testing.F, newStream func(key string) Stream) {
+func fuzzSimpleStream(f *testing.F, newStream func(p *Provider, key string) Stream) {
 	// key: string, plaintext: string
 	f.Add("key", "plain-text-plain-text000")
 
 	f.Fuzz(func(t *testing.T, key, plaintext string) {
-		createSimpleStream := func() Stream {
-			return newStream(key)
+		createSimpleStream := func(p *Provider) Stream {
+			return newStream(p, key)
 		}
 
 		testStream("", t, createSimpleStream, plaintext)
@@ -135,48 +135,51 @@ func fuzzSimpleStream(f *testing.F, newStream func(key string) Stream) {
 }
 
 func FuzzNewCFBStream(f *testing.F) {
-	fuzzNewStream(f, func(key, iv []byte) Stream {
-		return NewCFBStream(Bytes(key), Bytes(iv))
+	fuzzNewStream(f, func(p *Provider, key, iv []byte) Stream {
+		return p.NewCFBStream(Bytes(key), Bytes(iv))
 	})
 }
 
 func FuzzSimpleCFBStream(f *testing.F) {
-	fuzzSimpleStream(f, func(key string) Stream {
-		return SimpleCFBStream(key)
+	fuzzSimpleStream(f, func(p *Provider, key string) Stream {
+		return p.SimpleCFBStream(key)
 	})
 }
 
 func FuzzNewOFBStream(f *testing.F) {
-	fuzzNewStream(f, func(key, iv []byte) Stream {
-		return NewOFBStream(Bytes(key), Bytes(iv))
+	fuzzNewStream(f, func(p *Provider, key, iv []byte) Stream {
+		return p.NewOFBStream(Bytes(key), Bytes(iv))
 	})
 }
 
 func FuzzSimpleOFBStream(f *testing.F) {
-	fuzzSimpleStream(f, func(key string) Stream {
-		return SimpleOFBStream(key)
+	fuzzSimpleStream(f, func(p *Provider, key string) Stream {
+		return p.SimpleOFBStream(key)
 	})
 }
 
 func FuzzNewCTRStream(f *testing.F) {
-	fuzzNewStream(f, func(key, iv []byte) Stream {
-		return NewCTRStream(Bytes(key), Bytes(iv))
+	fuzzNewStream(f, func(p *Provider, key, iv []byte) Stream {
+		return p.NewCTRStream(Bytes(key), Bytes(iv))
 	})
 }
 
 func FuzzSimpleCTRStream(f *testing.F) {
-	fuzzSimpleStream(f, func(key string) Stream {
-		return SimpleCTRStream(key)
+	fuzzSimpleStream(f, func(p *Provider, key string) Stream {
+		return p.SimpleCTRStream(key)
 	})
 }
 
 func ExampleSimpleCTRStream() {
-	DefaultSalt = func() string { return "NaCl" }
+	sc := Provider{
+		StringCodec: HexCodec,
+		SaltFunc:    func() string { return "NaCl" },
+	}
 
 	key := "my-secret-key"
 	plainText := "Hello, World!"
 
-	stream := SimpleCTRStream(key)
+	stream := sc.SimpleCTRStream(key)
 
 	// Encrypting
 	plaintextReader := bytes.NewReader([]byte(plainText))
