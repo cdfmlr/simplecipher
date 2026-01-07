@@ -4,8 +4,7 @@ import (
 	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
-
-	"github.com/cdfmlr/simplecipher/pkcs7"
+	"github.com/cdfmlr/simplecipher/v2/pkcs7"
 )
 
 // This file implements AES block cipher modes.

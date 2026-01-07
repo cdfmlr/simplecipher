@@ -1,4 +1,4 @@
-module github.com/cdfmlr/simplecipher
+module github.com/cdfmlr/simplecipher/v2
 
 go 1.23.1
 
