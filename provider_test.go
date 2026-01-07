@@ -3,6 +3,7 @@ package simplecipher
 import (
 	"fmt"
 	"io"
+	"testing"
 )
 
 // testProvider returns a Provider instance for testing purposes.
@@ -214,4 +215,317 @@ func Example_customKeyAndIV() {
 
 	fmt.Println(decrypted)
 	// Output: Encrypted with custom key and IV
+}
+
+// TestProviderConfig verifies that Provider configuration (SaltFunc and StringCodec)
+// properly affects key derivation and encryption/decryption.
+func TestProviderConfig(t *testing.T) {
+	const (
+		passphrase = "test-passphrase"
+		plaintext  = "Hello, World!"
+	)
+
+	t.Run("SaltFunc affects key derivation", func(t *testing.T) {
+		// Create two providers with different salt functions
+		provider1 := &Provider{
+			StringCodec: HexCodec,
+			SaltFunc:    func() string { return "salt1" },
+		}
+		provider2 := &Provider{
+			StringCodec: HexCodec,
+			SaltFunc:    func() string { return "salt2" },
+		}
+
+		// Derive keys from the same passphrase
+		key1 := provider1.NewAesKey(passphrase)
+		key2 := provider2.NewAesKey(passphrase)
+
+		// Keys should be different due to different salts
+		bytes1 := key1.Bytes()
+		bytes2 := key2.Bytes()
+
+		if len(bytes1) != len(bytes2) {
+			t.Fatalf("key lengths differ: %d vs %d", len(bytes1), len(bytes2))
+		}
+
+		// Check that the keys are different
+		same := true
+		for i := range bytes1 {
+			if bytes1[i] != bytes2[i] {
+				same = false
+				break
+			}
+		}
+		if same {
+			t.Error("keys with different salts should be different")
+		}
+	})
+
+	t.Run("SaltFunc affects encryption output", func(t *testing.T) {
+		// Create two providers with different salt functions
+		provider1 := &Provider{
+			StringCodec: HexCodec,
+			SaltFunc:    func() string { return "salt1" },
+		}
+		provider2 := &Provider{
+			StringCodec: HexCodec,
+			SaltFunc:    func() string { return "salt2" },
+		}
+
+		// Create ciphers with fixed IV to make encryption deterministic
+		ivPassphrase := "fixed-iv"
+		key1 := provider1.NewAesKey(passphrase)
+		iv1 := provider1.NewIv(ivPassphrase)
+		cipher1 := provider1.NewCTR(key1, iv1)
+
+		key2 := provider2.NewAesKey(passphrase)
+		iv2 := provider2.NewIv(ivPassphrase)
+		cipher2 := provider2.NewCTR(key2, iv2)
+
+		// Encrypt the same plaintext
+		encrypted1, err := cipher1.Encrypt(plaintext)
+		if err != nil {
+			t.Fatalf("cipher1 encryption failed: %v", err)
+		}
+
+		encrypted2, err := cipher2.Encrypt(plaintext)
+		if err != nil {
+			t.Fatalf("cipher2 encryption failed: %v", err)
+		}
+
+		// Ciphertexts should be different due to different keys/IVs from different salts
+		if encrypted1 == encrypted2 {
+			t.Error("encrypted texts with different salts should be different")
+		}
+	})
+
+	t.Run("StringCodec affects encoding output format", func(t *testing.T) {
+		// Create two providers with different string codecs but same salt
+		providerHex := &Provider{
+			StringCodec: HexCodec,
+			SaltFunc:    func() string { return "same-salt" },
+		}
+		providerBase64 := &Provider{
+			StringCodec: Base64StdCodec,
+			SaltFunc:    func() string { return "same-salt" },
+		}
+
+		// Create ciphers with fixed IV
+		ivPassphrase := "fixed-iv"
+		keyHex := providerHex.NewAesKey(passphrase)
+		ivHex := providerHex.NewIv(ivPassphrase)
+		cipherHex := providerHex.NewCTR(keyHex, ivHex)
+
+		keyBase64 := providerBase64.NewAesKey(passphrase)
+		ivBase64 := providerBase64.NewIv(ivPassphrase)
+		cipherBase64 := providerBase64.NewCTR(keyBase64, ivBase64)
+
+		// Encrypt the same plaintext
+		encryptedHex, err := cipherHex.Encrypt(plaintext)
+		if err != nil {
+			t.Fatalf("hex cipher encryption failed: %v", err)
+		}
+
+		encryptedBase64, err := cipherBase64.Encrypt(plaintext)
+		if err != nil {
+			t.Fatalf("base64 cipher encryption failed: %v", err)
+		}
+
+		// The encrypted strings should be different due to different encoding
+		if encryptedHex == encryptedBase64 {
+			t.Error("encrypted texts with different codecs should have different encodings")
+		}
+
+		// Hex should only contain hex characters
+		for _, c := range encryptedHex {
+			if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')) {
+				t.Errorf("hex encoded string contains non-hex character: %c", c)
+			}
+		}
+
+		// Base64 should contain base64 characters
+		// (we don't check exact pattern, just that it's different from hex)
+		if len(encryptedBase64) == 0 {
+			t.Error("base64 encoded string is empty")
+		}
+	})
+
+	t.Run("Provider configuration affects encryption and decryption consistency", func(t *testing.T) {
+		// Create a provider with specific configuration
+		provider := &Provider{
+			StringCodec: Base64StdCodec,
+			SaltFunc:    func() string { return "consistent-salt" },
+		}
+
+		// Create cipher with fixed IV for deterministic encryption
+		ivPassphrase := "fixed-iv"
+		key := provider.NewAesKey(passphrase)
+		iv := provider.NewIv(ivPassphrase)
+		cipher := provider.NewCTR(key, iv)
+
+		// Encrypt
+		encrypted, err := cipher.Encrypt(plaintext)
+		if err != nil {
+			t.Fatalf("encryption failed: %v", err)
+		}
+
+		// Decrypt
+		decrypted, err := cipher.Decrypt(encrypted)
+		if err != nil {
+			t.Fatalf("decryption failed: %v", err)
+		}
+
+		// Should get back the original plaintext
+		if decrypted != plaintext {
+			t.Errorf("decrypted text doesn't match: got %q, want %q", decrypted, plaintext)
+		}
+	})
+
+	t.Run("Cross-provider decryption fails with different configurations", func(t *testing.T) {
+		// Create two providers with different salts
+		provider1 := &Provider{
+			StringCodec: HexCodec,
+			SaltFunc:    func() string { return "salt1" },
+		}
+		provider2 := &Provider{
+			StringCodec: HexCodec,
+			SaltFunc:    func() string { return "salt2" },
+		}
+
+		// Encrypt with provider1
+		ivPassphrase := "fixed-iv"
+		key1 := provider1.NewAesKey(passphrase)
+		iv1 := provider1.NewIv(ivPassphrase)
+		cipher1 := provider1.NewCTR(key1, iv1)
+		encrypted, err := cipher1.Encrypt(plaintext)
+		if err != nil {
+			t.Fatalf("encryption failed: %v", err)
+		}
+
+		// Try to decrypt with provider2 (different salt, so different key)
+		key2 := provider2.NewAesKey(passphrase)
+		iv2 := provider2.NewIv(ivPassphrase)
+		cipher2 := provider2.NewCTR(key2, iv2)
+		decrypted, err := cipher2.Decrypt(encrypted)
+		if err != nil {
+			// This is expected to fail if codec differs, but CTR mode won't error
+			t.Logf("decryption error (expected): %v", err)
+		}
+
+		// Due to different keys, decrypted text should not match plaintext
+		if decrypted == plaintext {
+			t.Error("decryption with different salt should not produce correct plaintext")
+		}
+	})
+
+	t.Run("Provider affects IV derivation", func(t *testing.T) {
+		provider1 := &Provider{
+			StringCodec: HexCodec,
+			SaltFunc:    func() string { return "salt1" },
+		}
+		provider2 := &Provider{
+			StringCodec: HexCodec,
+			SaltFunc:    func() string { return "salt2" },
+		}
+
+		ivPassphrase := "iv-passphrase"
+		iv1 := provider1.NewIv(ivPassphrase)
+		iv2 := provider2.NewIv(ivPassphrase)
+
+		bytes1 := iv1.Bytes()
+		bytes2 := iv2.Bytes()
+
+		if len(bytes1) != len(bytes2) {
+			t.Fatalf("IV lengths differ: %d vs %d", len(bytes1), len(bytes2))
+		}
+
+		// IVs should be different due to different salts
+		same := true
+		for i := range bytes1 {
+			if bytes1[i] != bytes2[i] {
+				same = false
+				break
+			}
+		}
+		if same {
+			t.Error("IVs with different salts should be different")
+		}
+	})
+
+	t.Run("Provider affects Nonce derivation for GCM", func(t *testing.T) {
+		provider1 := &Provider{
+			StringCodec: HexCodec,
+			SaltFunc:    func() string { return "salt1" },
+		}
+		provider2 := &Provider{
+			StringCodec: HexCodec,
+			SaltFunc:    func() string { return "salt2" },
+		}
+
+		noncePassphrase := "nonce-passphrase"
+		nonce1 := provider1.NewNonce(noncePassphrase)
+		nonce2 := provider2.NewNonce(noncePassphrase)
+
+		bytes1 := nonce1.Bytes()
+		bytes2 := nonce2.Bytes()
+
+		if len(bytes1) != len(bytes2) {
+			t.Fatalf("nonce lengths differ: %d vs %d", len(bytes1), len(bytes2))
+		}
+
+		// Nonces should be different due to different salts
+		same := true
+		for i := range bytes1 {
+			if bytes1[i] != bytes2[i] {
+				same = false
+				break
+			}
+		}
+		if same {
+			t.Error("nonces with different salts should be different")
+		}
+	})
+
+	t.Run("SimpleCTR uses provider configuration", func(t *testing.T) {
+		provider1 := &Provider{
+			StringCodec: HexCodec,
+			SaltFunc:    func() string { return "salt1" },
+		}
+		provider2 := &Provider{
+			StringCodec: Base64StdCodec,
+			SaltFunc:    func() string { return "salt2" },
+		}
+
+		// Use SimpleCTR which should use the provider's configuration
+		cipher1 := provider1.SimpleCTR(passphrase)
+		cipher2 := provider2.SimpleCTR(passphrase)
+
+		// Each can encrypt and decrypt its own data
+		encrypted1, err := cipher1.Encrypt(plaintext)
+		if err != nil {
+			t.Fatalf("cipher1 encryption failed: %v", err)
+		}
+
+		encrypted2, err := cipher2.Encrypt(plaintext)
+		if err != nil {
+			t.Fatalf("cipher2 encryption failed: %v", err)
+		}
+
+		// Verify they can decrypt their own ciphertext
+		decrypted1, err := cipher1.Decrypt(encrypted1)
+		if err != nil {
+			t.Fatalf("cipher1 decryption failed: %v", err)
+		}
+		if decrypted1 != plaintext {
+			t.Errorf("cipher1: got %q, want %q", decrypted1, plaintext)
+		}
+
+		decrypted2, err := cipher2.Decrypt(encrypted2)
+		if err != nil {
+			t.Fatalf("cipher2 decryption failed: %v", err)
+		}
+		if decrypted2 != plaintext {
+			t.Errorf("cipher2: got %q, want %q", decrypted2, plaintext)
+		}
+	})
 }
