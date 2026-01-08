@@ -5,17 +5,17 @@ import (
 	"hash"
 	"io"
 
-	"golang.org/x/crypto/hkdf"
+	cryptoHkdf "golang.org/x/crypto/hkdf"
 )
 
-// Hkdf is a cryptographic key derivation function with the goal of
+// hkdf is a cryptographic key derivation function with the goal of
 // expanding limited input keying material into one or more cryptographically
 // strong secret keys. Defined in RFC 5869.
 //
-// Hkdf is NOT for **human-created password** (low entropy).
+// hkdf is NOT for **human-created password** (low entropy).
 // If you use HKDF on a human password like "P@ssword123",
 // an attacker can crack it instantly because HKDF is designed to be fast.
-type Hkdf struct {
+type hkdf struct {
 	Hash func() hash.Hash
 	// Info is optional context information for the derived key.
 	Info []byte
@@ -24,14 +24,22 @@ type Hkdf struct {
 	Iter int
 }
 
-var _ KeyDerivation = (*Hkdf)(nil)
+func NewHkdf(hashFunc func() hash.Hash, info []byte, iter int) KeyDerivation {
+	return &hkdf{
+		Hash: hashFunc,
+		Info: info,
+		Iter: iter,
+	}
+}
+
+var _ KeyDerivation = (*hkdf)(nil)
 
 // Derive a key from the given password and salt using HKDF.
 // Remember to get a good random salt.
-func (h *Hkdf) Derive(password, salt []byte, keyLen int) (key []byte, err error) {
+func (h *hkdf) Derive(password, salt []byte, keyLen int) (key []byte, err error) {
 	defer recoverFromPanic(&err)
 
-	hkdfReader := hkdf.New(h.Hash, password, salt, h.Info)
+	hkdfReader := cryptoHkdf.New(h.Hash, password, salt, h.Info)
 
 	key = make([]byte, keyLen)
 
@@ -47,28 +55,31 @@ func (h *Hkdf) Derive(password, salt []byte, keyLen int) (key []byte, err error)
 }
 
 // profiles
-
 // we don't recommend any HKDF profile, just for completeness.
-func cheapHkdf() *Hkdf {
-	return &Hkdf{
+
+// CheapHkdf uses SHA256 with no info and no extra iterations for HKDF.
+func CheapHkdf() KeyDerivation {
+	return &hkdf{
 		Hash: sha256.New,
 		Info: nil,
 		Iter: 0,
 	}
 }
 
-// we don't recommend any HKDF profile, just for completeness.
-func recommendedHkdf() *Hkdf {
-	return &Hkdf{
+// RecommendedHkdf uses SHA256 with hardcoded info "MGUwOTRj" (random generated
+// by developer) and 1 extra iteration for HKDF.
+func RecommendedHkdf() KeyDerivation {
+	return &hkdf{
 		Hash: sha256.New,
 		Info: []byte("MGUwOTRj"), // info is actually non-secret context info
 		Iter: 1,
 	}
 }
 
-// we don't recommend any HKDF profile, just for completeness.
-func strongHkdf() *Hkdf {
-	return &Hkdf{
+// StrongHkdf uses SHA256 with hardcoded info "ZTQwODc2ZWYtMmQy" (random generated
+// by developer) and 2 extra iterations for HKDF.
+func StrongHkdf() KeyDerivation {
+	return &hkdf{
 		Hash: sha256.New,
 		Info: []byte("ZTQwODc2ZWYtMmQy"), // info is actually non-secret context info
 		Iter: 2,

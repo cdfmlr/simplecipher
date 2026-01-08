@@ -8,10 +8,10 @@ import (
 	"reflect"
 	"testing"
 
-	"golang.org/x/crypto/argon2"
-	"golang.org/x/crypto/hkdf"
-	"golang.org/x/crypto/pbkdf2"
-	"golang.org/x/crypto/scrypt"
+	cryptoArgon2 "golang.org/x/crypto/argon2"
+	cryptoHkdf "golang.org/x/crypto/hkdf"
+	cryptoPbkdf2 "golang.org/x/crypto/pbkdf2"
+	cryptoScrypt "golang.org/x/crypto/scrypt"
 )
 
 // Test_KDFs tests the KDF implementations from golang.org/x/crypto.
@@ -20,23 +20,23 @@ func Test_KDFs(t *testing.T) {
 	salt := []byte("somesaltvalue12") // 16 bytes salt
 	keyLen := 32
 
-	t.Run("Argon2id", func(t *testing.T) {
+	t.Run("argon2id", func(t *testing.T) {
 		defer func() {
 			if r := recover(); r != nil {
-				t.Errorf("Argon2id panicked: %v", r)
+				t.Errorf("argon2id panicked: %v", r)
 			}
 		}()
 
-		gotKey := argon2.IDKey(password, salt, 1, 64*1024, 4, uint32(keyLen))
+		gotKey := cryptoArgon2.IDKey(password, salt, 1, 64*1024, 4, uint32(keyLen))
 
 		gotKeyHex := hex.EncodeToString(gotKey)
 		expectedKeyHex := "1ef067f6c2bedd422b7ed99d8315a8a5f28d4ea6cb03cd68783bb9f8c9d5622b"
 
 		if !reflect.DeepEqual(gotKeyHex, expectedKeyHex) {
-			t.Errorf("Argon2id key mismatch:\n  Got:\n%v\n  Want:\n%v", gotKeyHex, expectedKeyHex)
+			t.Errorf("argon2id key mismatch:\n  Got:\n%v\n  Want:\n%v", gotKeyHex, expectedKeyHex)
 		}
 
-		t.Logf("Argon2id: derived key: %v", gotKeyHex)
+		t.Logf("argon2id: derived key: %v", gotKeyHex)
 	})
 
 	t.Run("scrypt", func(t *testing.T) {
@@ -46,7 +46,7 @@ func Test_KDFs(t *testing.T) {
 			}
 		}()
 
-		gotKey, err := scrypt.Key(password, salt, 32768, 8, 1, keyLen)
+		gotKey, err := cryptoScrypt.Key(password, salt, 32768, 8, 1, keyLen)
 		if err != nil {
 			t.Errorf("scrypt.Key returned error: %v", err)
 		}
@@ -68,7 +68,7 @@ func Test_KDFs(t *testing.T) {
 			}
 		}()
 
-		gotKey := pbkdf2.Key(password, salt, 4096, keyLen, sha1.New)
+		gotKey := cryptoPbkdf2.Key(password, salt, 4096, keyLen, sha1.New)
 
 		gotKeyHex := hex.EncodeToString(gotKey)
 		expectedKeyHex := "942276e6bddc924e0a32162c39ceae4383e67652e9f7d8b7bbf841a26929e57b"
@@ -89,7 +89,7 @@ func Test_KDFs(t *testing.T) {
 			}
 		}()
 
-		hkdfReader := hkdf.New(sha256.New, password, salt, nil)
+		hkdfReader := cryptoHkdf.New(sha256.New, password, salt, nil)
 
 		gotKey := make([]byte, keyLen)
 		_, err := io.ReadFull(hkdfReader, gotKey)
