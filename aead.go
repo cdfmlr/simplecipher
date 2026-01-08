@@ -17,6 +17,17 @@ import (
 //  - https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Authenticated_encryption_with_additional_data_(AEAD)_modes
 //  - https://pkg.go.dev/crypto/cipher@go1.23.1#AEAD
 
+// TODO: fix(GCM): nonce should be randomly generated for each encryption,
+//       add prefix to ciphertext just like iv in other modes.
+//       The current nonce key in struct should actually be the additionalData.
+//       the ciphertext should be:
+//           [ Nonce ] + [ Ciphertext ] + [ Additional ].
+//       the interface should be:
+//           func SimpleGCM(keyPassphrase, additionalPassphrase string) Cipher
+// TODO: feat(GCM): GCM can support stream.
+// TODO: docs(GCM): GCM can be preferred then CTR in docs after these changes,
+//       because GCM provides integrity check and it's actually The Gold Standard.
+
 // gcm is the AES-GCM cipher mode implementation for the [Cipher] interface.
 type gcm struct {
 	key    Key
