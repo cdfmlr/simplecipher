@@ -32,3 +32,28 @@ func (a *Argon2id) Derive(password, salt []byte, keyLen int) (key []byte, err er
 	key = argon2.IDKey(password, salt, a.Time, a.Memory, a.Threads, uint32(keyLen))
 	return key, nil
 }
+
+// profiles
+
+// cheapArgon2id will comfortably run in < 10ms on almost any modern laptop.
+func cheapArgon2id() *Argon2id {
+	return &Argon2id{
+		Time: 1, Memory: 16 * 1024, Threads: 1,
+	}
+}
+
+// recommendedArgon2id is in the middle of the OWASP RECOMMENDATION and the
+// RFC 9106 SECOND RECOMMENDATION.
+func recommendedArgon2id() *Argon2id {
+	return &Argon2id{
+		Time: 2, Memory: 64 * 1024, Threads: 1,
+	}
+}
+
+// strongArgon2id is the FIRST RECOMMENDED SETTINGS from RFC 9106 Section 7.4.
+// It requires about 2GB of RAM.
+func strongArgon2id() *Argon2id {
+	return &Argon2id{
+		Time: 1, Memory: 2 * 1024 * 1024, Threads: 1,
+	}
+}

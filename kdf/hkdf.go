@@ -1,6 +1,7 @@
 package kdf
 
 import (
+	"crypto/sha256"
 	"hash"
 	"io"
 
@@ -43,4 +44,33 @@ func (h *Hkdf) Derive(password, salt []byte, keyLen int) (key []byte, err error)
 	// use the last derived key
 	_, err = io.ReadFull(hkdfReader, key)
 	return key, err
+}
+
+// profiles
+
+// we don't recommend any HKDF profile, just for completeness.
+func cheapHkdf() *Hkdf {
+	return &Hkdf{
+		Hash: sha256.New,
+		Info: nil,
+		Iter: 0,
+	}
+}
+
+// we don't recommend any HKDF profile, just for completeness.
+func recommendedHkdf() *Hkdf {
+	return &Hkdf{
+		Hash: sha256.New,
+		Info: []byte("MGUwOTRj"), // info is actually non-secret context info
+		Iter: 1,
+	}
+}
+
+// we don't recommend any HKDF profile, just for completeness.
+func strongHkdf() *Hkdf {
+	return &Hkdf{
+		Hash: sha256.New,
+		Info: []byte("ZTQwODc2ZWYtMmQy"), // info is actually non-secret context info
+		Iter: 2,
+	}
 }

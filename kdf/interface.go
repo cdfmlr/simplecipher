@@ -1,13 +1,11 @@
 package kdf
 
 // KeyDerivation is a key derivation function (KDF) interface.
+//
+// KeyDerivation is for internal use in simplecipher only.
+// So it is NOT simplified to accept string args like the outer Block/Stream
+// interfaces do. This is by design.
 type KeyDerivation interface {
 	// Derive derives a key from the given password and salt.
 	Derive(password, salt []byte, keyLen int) ([]byte, error)
-}
-
-func recoverFromPanic(err *error) {
-	if r := recover(); r != nil {
-		*err = r.(error)
-	}
 }

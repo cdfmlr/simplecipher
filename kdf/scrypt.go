@@ -28,3 +28,26 @@ func (s *Scrypt) Derive(password, salt []byte, keyLen int) (key []byte, err erro
 	key, err = scrypt.Key(password, salt, s.N, s.R, s.P, keyLen)
 	return key, err
 }
+
+// profiles
+
+// cheapScrypt use N=2^13 (8 MiB) for low memory usage and fast derivation.
+func cheapScrypt() *Scrypt {
+	return &Scrypt{
+		N: 8192, R: 8, P: 1,
+	}
+}
+
+// recommendedScrypt use N=2^15 (32 MiB) as golang.org/x/crypto/scrypt RECOMMENDED.
+func recommendedScrypt() *Scrypt {
+	return &Scrypt{
+		N: 32768, R: 8, P: 1,
+	}
+}
+
+// strongScrypt use N=2^17 (128 MiB) as OWASP RECOMMENDED.
+func strongScrypt() *Scrypt {
+	return &Scrypt{
+		N: 131072, R: 8, P: 1,
+	}
+}
