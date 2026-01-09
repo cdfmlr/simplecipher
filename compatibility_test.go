@@ -34,9 +34,10 @@ func TestKeyGen_Compatibility(t *testing.T) {
 	t.Run("keyGenAlgo", func(t *testing.T) {
 		// test the algorithm produces deterministic output
 		g := keyGen{
-			Passphrase: "test-passphrase",
-			Len:        Aes256,
-			Salt:       "test-salt",
+			Passphrase:    "test-passphrase",
+			Len:           Aes256,
+			Salt:          "test-salt",
+			KeyDerivation: DefaultProvider.KeyDerivation,
 		}
 
 		// we hardcode the expected output here to ensure compatibility

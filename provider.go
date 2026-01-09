@@ -6,6 +6,8 @@ import (
 	"fmt"
 	mathrand "math/rand"
 	"time"
+
+	"github.com/cdfmlr/simplecipher/v2/kdf"
 )
 
 // config is an internal alias for Provider to make struct field names clearer.
@@ -23,13 +25,18 @@ type Provider struct {
 	// SaltFunc is a function that returns the salt used for key derivation.
 	// Defaults to a fixed random string for backward compatibility.
 	SaltFunc func() string
+
+	// KeyDerivation is the key derivation function used to derive keys from passphrases.
+	// Defaults to scrypt with N=2048, r=8, p=1 for backward compatibility.
+	KeyDerivation KeyDerivation
 }
 
 // DefaultProvider is a ready-to-use Provider instance with default configuration.
 // It uses HexCodec for string encoding and delegates to DefaultSalt for the salt function.
 var DefaultProvider = &Provider{
-	StringCodec: HexCodec,
-	SaltFunc:    func() string { return "5f11a4921aea524b9d3cb7f2514b0724" },
+	StringCodec:   HexCodec,
+	SaltFunc:      func() string { return "5f11a4921aea524b9d3cb7f2514b0724" },
+	KeyDerivation: kdf.NewScrypt(2048, 8, 1), // Default scrypt params for backward compatibility
 }
 
 // ============ Block Cipher Methods ============
@@ -265,7 +272,7 @@ func (p *Provider) SimpleGCM(keyPassphrase, noncePassphrase string) Cipher {
 //
 // Use [Provider.NewAesKey], [Provider.NewNonce], or [Provider.NewIv] for specific key types.
 func (p *Provider) NewKey(passphrase string, len KeyLen, salt string) Key {
-	return newKeyGen(passphrase, len, salt)
+	return newKeyGen(passphrase, len, salt, p.KeyDerivation)
 }
 
 // NewAesKey creates a new AES key derived from the passphrase.
@@ -273,7 +280,7 @@ func (p *Provider) NewKey(passphrase string, len KeyLen, salt string) Key {
 // [Aes256] and the provider's salt function are used by default.
 // Use [WithSalt] and [WithLen] options to customize the key derivation.
 func (p *Provider) NewAesKey(passphrase string, options ...KeyGenOption) Key {
-	keygen := newKeyGen(passphrase, Aes256, p.SaltFunc())
+	keygen := newKeyGen(passphrase, Aes256, p.SaltFunc(), p.KeyDerivation)
 
 	for _, opt := range options {
 		opt(keygen)
@@ -291,7 +298,7 @@ func (p *Provider) NewAesKey(passphrase string, options ...KeyGenOption) Key {
 // The output key will be derived from the passphrase via
 // Sequential Memory-Hard Functions with the provider's salt function.
 func (p *Provider) NewNonce(passphrase string, options ...KeyGenOption) Key {
-	keygen := newKeyGen(passphrase, NonceSize, p.SaltFunc())
+	keygen := newKeyGen(passphrase, NonceSize, p.SaltFunc(), p.KeyDerivation)
 
 	for _, opt := range options {
 		opt(keygen)
@@ -305,7 +312,7 @@ func (p *Provider) NewNonce(passphrase string, options ...KeyGenOption) Key {
 // The output key will be derived from the passphrase via
 // Sequential Memory-Hard Functions with the provider's salt function.
 func (p *Provider) NewIv(passphrase string, options ...KeyGenOption) Key {
-	keygen := newKeyGen(passphrase, aes.BlockSize, p.SaltFunc())
+	keygen := newKeyGen(passphrase, aes.BlockSize, p.SaltFunc(), p.KeyDerivation)
 
 	for _, opt := range options {
 		opt(keygen)

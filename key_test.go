@@ -4,6 +4,8 @@ import (
 	"encoding/hex"
 	"reflect"
 	"testing"
+
+	"github.com/cdfmlr/simplecipher/v2/kdf"
 )
 
 func TestBytes_Bytes(t *testing.T) {
@@ -68,12 +70,11 @@ func TestString_Bytes(t *testing.T) {
 }
 
 func Test_keyGen_Bytes(t *testing.T) {
-	// TODO: KDF algorithm will be a part of the Provider in the future
-
 	type fields struct {
 		Passphrase string
 		Len        KeyLen
 		Salt       string
+		KDF        KeyDerivation
 	}
 	tests := []struct {
 		name   string
@@ -86,6 +87,7 @@ func Test_keyGen_Bytes(t *testing.T) {
 				Passphrase: "",
 				Len:        0,
 				Salt:       "",
+				KDF:        kdf.NewScrypt(2048, 8, 1),
 			},
 			want: "",
 		},
@@ -95,6 +97,7 @@ func Test_keyGen_Bytes(t *testing.T) {
 				Passphrase: "any",
 				Len:        -1,
 				Salt:       "",
+				KDF:        kdf.NewScrypt(2048, 8, 1),
 			},
 			want: "",
 		},
@@ -104,6 +107,7 @@ func Test_keyGen_Bytes(t *testing.T) {
 				Passphrase: "hello, world",
 				Len:        Aes128,
 				Salt:       "testsalt",
+				KDF:        kdf.NewScrypt(2048, 8, 1),
 			},
 			want: "4f1db40b0cd47e1d2639da8c95ef6d1b",
 		},
@@ -113,6 +117,7 @@ func Test_keyGen_Bytes(t *testing.T) {
 				Passphrase: "hello, world",
 				Len:        Aes192,
 				Salt:       "testsalt",
+				KDF:        kdf.NewScrypt(2048, 8, 1),
 			},
 			want: "4f1db40b0cd47e1d2639da8c95ef6d1b65e706e6e211680e",
 		},
@@ -122,6 +127,7 @@ func Test_keyGen_Bytes(t *testing.T) {
 				Passphrase: "hello, world",
 				Len:        Aes256,
 				Salt:       "testsalt",
+				KDF:        kdf.NewScrypt(2048, 8, 1),
 			},
 			want: "4f1db40b0cd47e1d2639da8c95ef6d1b65e706e6e211680eeb14dc23ce8de545",
 		},
@@ -129,9 +135,10 @@ func Test_keyGen_Bytes(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			k := keyGen{
-				Passphrase: tt.fields.Passphrase,
-				Len:        tt.fields.Len,
-				Salt:       tt.fields.Salt,
+				Passphrase:    tt.fields.Passphrase,
+				Len:           tt.fields.Len,
+				Salt:          tt.fields.Salt,
+				KeyDerivation: tt.fields.KDF,
 			}
 			wantBytes, _ := hex.DecodeString(tt.want)
 			got := k.Bytes()

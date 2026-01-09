@@ -1,7 +1,7 @@
 package simplecipher
 
 import (
-	"golang.org/x/crypto/scrypt"
+	"github.com/cdfmlr/simplecipher/v2/kdf"
 )
 
 // This file provides a helper interface and struct to create AES keys.
@@ -60,6 +60,8 @@ type keyGen struct {
 	Len KeyLen
 	// Salt is a random string to make the key derivation more secure.
 	Salt string
+	// KeyDerivation is the KDF function to use for key derivation.
+	KeyDerivation kdf.KeyDerivation
 }
 
 var _ Key = (*keyGen)(nil)
@@ -67,11 +69,12 @@ var _ Key = (*keyGen)(nil)
 // KeyLen is a type to indicate the length of the key in bytes.
 type KeyLen int
 
-func newKeyGen(passphrase string, len KeyLen, salt string) *keyGen {
+func newKeyGen(passphrase string, len KeyLen, salt string, keyDerivation kdf.KeyDerivation) *keyGen {
 	return &keyGen{
-		Passphrase: passphrase,
-		Len:        len,
-		Salt:       salt,
+		Passphrase:    passphrase,
+		Len:           len,
+		Salt:          salt,
+		KeyDerivation: keyDerivation,
 	}
 }
 
@@ -87,7 +90,7 @@ func newKeyGen(passphrase string, len KeyLen, salt string) *keyGen {
 //
 // Use [NewAesKey], [NewNonce], or [NewIv] for specific key types.
 func NewKey(passphrase string, len KeyLen, salt string) Key {
-	return newKeyGen(passphrase, len, salt)
+	return newKeyGen(passphrase, len, salt, DefaultProvider.KeyDerivation)
 }
 
 // Bytes return the key as a byte slice.
@@ -104,18 +107,17 @@ func (k keyGen) Bytes() []byte {
 		expectedKeyLen = 0
 	}
 
-	// derive key using scrypt
-
-	// N=32768 is recommended by https://pkg.go.dev/golang.org/x/crypto/scrypt#Key
-	// N=32768 takes < 100ms on modern computers,
-	// lower N for faster key derivation (e.g., 2048 for < 10ms)
-	key, err := scrypt.Key(key, salt, 2048, 8, 1, expectedKeyLen)
-	if err != nil && len(key) == expectedKeyLen {
-		return nil
+	// derive key using the configured KeyDerivation function
+	var err error
+	if k.KeyDerivation != nil {
+		key, err = k.KeyDerivation.Derive(key, salt, expectedKeyLen)
+		if err == nil && len(key) == expectedKeyLen {
+			return key
+		}
 	}
 
-	// scrypt failed, use the Passphrase key with naive padding/truncation.
-	// This should never happen.
+	// KDF failed or not configured, use the Passphrase key with naive padding/truncation.
+	// This should never happen when KeyDerivation is properly configured.
 
 	keyLength := len(key)
 	if keyLength < expectedKeyLen {

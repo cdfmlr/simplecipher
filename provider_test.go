@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"io"
 	"testing"
+
+	"github.com/cdfmlr/simplecipher/v2/kdf"
 )
 
 // testProvider returns a Provider instance for testing purposes.
@@ -228,12 +230,14 @@ func TestProviderConfig(t *testing.T) {
 	t.Run("SaltFunc affects key derivation", func(t *testing.T) {
 		// Create two providers with different salt functions
 		provider1 := &Provider{
-			StringCodec: HexCodec,
-			SaltFunc:    func() string { return "salt1" },
+			StringCodec:   HexCodec,
+			SaltFunc:      func() string { return "salt1" },
+			KeyDerivation: kdf.NewScrypt(2048, 8, 1),
 		}
 		provider2 := &Provider{
-			StringCodec: HexCodec,
-			SaltFunc:    func() string { return "salt2" },
+			StringCodec:   HexCodec,
+			SaltFunc:      func() string { return "salt2" },
+			KeyDerivation: kdf.NewScrypt(2048, 8, 1),
 		}
 
 		// Derive keys from the same passphrase
@@ -264,12 +268,14 @@ func TestProviderConfig(t *testing.T) {
 	t.Run("SaltFunc affects encryption output", func(t *testing.T) {
 		// Create two providers with different salt functions
 		provider1 := &Provider{
-			StringCodec: HexCodec,
-			SaltFunc:    func() string { return "salt1" },
+			StringCodec:   HexCodec,
+			SaltFunc:      func() string { return "salt1" },
+			KeyDerivation: kdf.NewScrypt(2048, 8, 1),
 		}
 		provider2 := &Provider{
-			StringCodec: HexCodec,
-			SaltFunc:    func() string { return "salt2" },
+			StringCodec:   HexCodec,
+			SaltFunc:      func() string { return "salt2" },
+			KeyDerivation: kdf.NewScrypt(2048, 8, 1),
 		}
 
 		// Create ciphers with fixed IV to make encryption deterministic
@@ -384,12 +390,14 @@ func TestProviderConfig(t *testing.T) {
 	t.Run("Cross-provider decryption fails with different configurations", func(t *testing.T) {
 		// Create two providers with different salts
 		provider1 := &Provider{
-			StringCodec: HexCodec,
-			SaltFunc:    func() string { return "salt1" },
+			StringCodec:   HexCodec,
+			SaltFunc:      func() string { return "salt1" },
+			KeyDerivation: kdf.NewScrypt(2048, 8, 1),
 		}
 		provider2 := &Provider{
-			StringCodec: HexCodec,
-			SaltFunc:    func() string { return "salt2" },
+			StringCodec:   HexCodec,
+			SaltFunc:      func() string { return "salt2" },
+			KeyDerivation: kdf.NewScrypt(2048, 8, 1),
 		}
 
 		// Encrypt with provider1
@@ -420,12 +428,14 @@ func TestProviderConfig(t *testing.T) {
 
 	t.Run("Provider affects IV derivation", func(t *testing.T) {
 		provider1 := &Provider{
-			StringCodec: HexCodec,
-			SaltFunc:    func() string { return "salt1" },
+			StringCodec:   HexCodec,
+			SaltFunc:      func() string { return "salt1" },
+			KeyDerivation: kdf.NewScrypt(2048, 8, 1),
 		}
 		provider2 := &Provider{
-			StringCodec: HexCodec,
-			SaltFunc:    func() string { return "salt2" },
+			StringCodec:   HexCodec,
+			SaltFunc:      func() string { return "salt2" },
+			KeyDerivation: kdf.NewScrypt(2048, 8, 1),
 		}
 
 		ivPassphrase := "iv-passphrase"
@@ -454,12 +464,14 @@ func TestProviderConfig(t *testing.T) {
 
 	t.Run("Provider affects Nonce derivation for GCM", func(t *testing.T) {
 		provider1 := &Provider{
-			StringCodec: HexCodec,
-			SaltFunc:    func() string { return "salt1" },
+			StringCodec:   HexCodec,
+			SaltFunc:      func() string { return "salt1" },
+			KeyDerivation: kdf.NewScrypt(2048, 8, 1),
 		}
 		provider2 := &Provider{
-			StringCodec: HexCodec,
-			SaltFunc:    func() string { return "salt2" },
+			StringCodec:   HexCodec,
+			SaltFunc:      func() string { return "salt2" },
+			KeyDerivation: kdf.NewScrypt(2048, 8, 1),
 		}
 
 		noncePassphrase := "nonce-passphrase"

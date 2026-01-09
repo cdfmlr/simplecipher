@@ -7,6 +7,8 @@ package simplecipher
 import (
 	"errors"
 	"io"
+
+	"github.com/cdfmlr/simplecipher/v2/kdf"
 )
 
 // Cipher is an interface for encryption and decryption of strings.
@@ -36,6 +38,10 @@ type Stream interface {
 	// and write the plaintext to the given writer.
 	DecryptStream(cipherText io.Reader, plainText io.Writer) error
 }
+
+// KeyDerivation is a key derivation function (KDF) interface.
+// See [kdf.KeyDerivation] for details.
+type KeyDerivation = kdf.KeyDerivation
 
 // Errors
 var (
