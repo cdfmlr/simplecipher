@@ -45,6 +45,8 @@ func (s *scrypt) Derive(password, salt []byte, keyLen int) (key []byte, err erro
 // profiles
 
 // CheapScrypt use N=2^13 (8 MiB) for low memory usage and fast derivation.
+//
+// Commonly take around 10ms on modern (2025) hardware.
 func CheapScrypt() KeyDerivation {
 	return &scrypt{
 		N: 8192, R: 8, P: 1,
@@ -52,6 +54,8 @@ func CheapScrypt() KeyDerivation {
 }
 
 // RecommendedScrypt use N=2^15 (32 MiB) as golang.org/x/crypto/scrypt RECOMMENDED.
+//
+// Commonly take around 40ms on modern (2025) hardware.
 func RecommendedScrypt() KeyDerivation {
 	return &scrypt{
 		N: 32768, R: 8, P: 1,
@@ -59,6 +63,8 @@ func RecommendedScrypt() KeyDerivation {
 }
 
 // StrongScrypt use N=2^17 (128 MiB) as OWASP RECOMMENDED.
+//
+// Commonly take ~160ms on modern (2025) hardware.
 func StrongScrypt() KeyDerivation {
 	return &scrypt{
 		N: 131072, R: 8, P: 1,

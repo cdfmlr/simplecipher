@@ -46,7 +46,7 @@ func (a *argon2id) Derive(password, salt []byte, keyLen int) (key []byte, err er
 
 // profiles
 
-// CheapArgon2id will comfortably run in < 10ms on almost any modern laptop.
+// CheapArgon2id will comfortably run in ~ 10ms on modern (2025) laptops.
 func CheapArgon2id() KeyDerivation {
 	return &argon2id{
 		Time: 1, Memory: 16 * 1024, Threads: 1,
@@ -55,6 +55,8 @@ func CheapArgon2id() KeyDerivation {
 
 // RecommendedArgon2id is in the middle of the OWASP RECOMMENDATION and the
 // RFC 9106 SECOND RECOMMENDATION.
+//
+// It requires about 64MB of RAM and will take around 80ms.
 func RecommendedArgon2id() KeyDerivation {
 	return &argon2id{
 		Time: 2, Memory: 64 * 1024, Threads: 1,
@@ -62,7 +64,8 @@ func RecommendedArgon2id() KeyDerivation {
 }
 
 // StrongArgon2id is the FIRST RECOMMENDED SETTINGS from RFC 9106 Section 7.4.
-// It requires about 2GB of RAM.
+//
+// It requires about 2GB of RAM and will take more than 1s (<2s) on common hardware in 2025.
 func StrongArgon2id() KeyDerivation {
 	return &argon2id{
 		Time: 1, Memory: 2 * 1024 * 1024, Threads: 1,

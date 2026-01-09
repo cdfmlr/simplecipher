@@ -44,7 +44,9 @@ func (p *pbkdf2) Derive(password, salt []byte, keyLen int) (key []byte, err erro
 
 // profiles
 
-// CheapPbkdf2 uses 10,000 SHA1 iterations for low memory usage and fast derivation.
+// CheapPbkdf2 uses 10,000 SHA1 iterations for low memory usage and fast derivation. Commonly take <=1ms on modern (2025) hardware.
+//
+// It is NOT recommended for new applications.
 func CheapPbkdf2() KeyDerivation {
 	return &pbkdf2{
 		Iter: 10000,
@@ -53,6 +55,8 @@ func CheapPbkdf2() KeyDerivation {
 }
 
 // RecommendedPbkdf2 uses 100,000 SHA256 iterations as of 2024 recommendations.
+//
+// Commonly take around 10ms on modern (2025) hardware.
 func RecommendedPbkdf2() KeyDerivation {
 	return &pbkdf2{
 		Iter: 100000,
@@ -62,6 +66,8 @@ func RecommendedPbkdf2() KeyDerivation {
 
 // StrongPbkdf2 uses 600,000 SHA256 iterations for stronger security as
 // of OWASP recommendations.
+//
+// Commonly take around 50ms on modern (2025) hardware.
 func StrongPbkdf2() KeyDerivation {
 	return &pbkdf2{
 		Iter: 600000,

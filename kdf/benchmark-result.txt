@@ -1,0 +1,18 @@
+goos: darwin
+goarch: arm64
+pkg: github.com/cdfmlr/simplecipher/v2/kdf
+cpu: Apple M4
+BenchmarkProfiles/CheapArgon2id-10         	     164	   7201525 ns/op	16781610 B/op	      24 allocs/op
+BenchmarkProfiles/RecommendedArgon2id-10   	      16	  66822378 ns/op	67113466 B/op	      32 allocs/op
+BenchmarkProfiles/StrongArgon2id-10        	       1	1257518042 ns/op	2147487976 B/op	      24 allocs/op
+BenchmarkProfiles/CheapScrypt-10           	     145	   8247371 ns/op	 8393209 B/op	      22 allocs/op
+BenchmarkProfiles/RecommendedScrypt-10     	      31	  36143210 ns/op	33559043 B/op	      22 allocs/op
+BenchmarkProfiles/StrongScrypt-10          	       7	 148456833 ns/op	134222377 B/op	      22 allocs/op
+BenchmarkProfiles/CheapPbkdf2-10           	     684	   1758070 ns/op	     716 B/op	      10 allocs/op
+BenchmarkProfiles/RecommendedPbkdf2-10     	     133	   9016415 ns/op	     772 B/op	      10 allocs/op
+BenchmarkProfiles/StrongPbkdf2-10          	      21	  54031750 ns/op	     772 B/op	      10 allocs/op
+BenchmarkProfiles/CheapHkdf-10             	 2569701	       467.9 ns/op	    1169 B/op	      15 allocs/op
+BenchmarkProfiles/RecommendedHkdf-10       	 1916199	       626.5 ns/op	    1394 B/op	      18 allocs/op
+BenchmarkProfiles/StrongHkdf-10            	 1649476	       744.8 ns/op	    1395 B/op	      19 allocs/op
+PASS
+ok  	github.com/cdfmlr/simplecipher/v2/kdf	18.771s
