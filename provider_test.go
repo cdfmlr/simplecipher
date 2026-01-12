@@ -703,7 +703,6 @@ func TestCustomKeyDerivation(t *testing.T) {
 		if DefaultProvider.KeyDerivation == nil {
 			t.Fatal("DefaultProvider.KeyDerivation should not be nil")
 		}
-		// DefaultProvider.SaltFunc = func() string { return "testsalt" } // TODO: do not change global state in tests
 
 		t.Logf("DefaultProvider.KeyDerivation: \n%#v", DefaultProvider.KeyDerivation)
 		t.Logf("DefaultProvider.Salt: \n%#v", DefaultProvider.SaltFunc())

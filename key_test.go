@@ -70,6 +70,7 @@ func TestString_Bytes(t *testing.T) {
 }
 
 func Test_keyGen_Bytes(t *testing.T) {
+	// these tests are against different KDFs and other parameters.
 	type fields struct {
 		Passphrase string
 		Len        KeyLen
@@ -153,7 +154,7 @@ func Test_keyGen_Bytes(t *testing.T) {
 }
 
 func TestNewAesKey(t *testing.T) {
-	DefaultProvider.SaltFunc = func() string { return "testsalt" } // TODO: KDF algorithm will be a part of the Provider in the future
+	provider := testProvider()
 
 	type args struct {
 		passphrase string
@@ -211,7 +212,7 @@ func TestNewAesKey(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			kg := NewAesKey(tt.args.passphrase, tt.args.options...)
+			kg := provider.NewAesKey(tt.args.passphrase, tt.args.options...)
 			got := kg.Bytes()
 			gotHex := hex.EncodeToString(got)
 
@@ -223,7 +224,7 @@ func TestNewAesKey(t *testing.T) {
 }
 
 func TestNewNonce(t *testing.T) {
-	DefaultProvider.SaltFunc = func() string { return "testsalt" } // TODO: Provider += KDF
+	provider := testProvider()
 
 	type args struct {
 		passphrase string
@@ -271,7 +272,7 @@ func TestNewNonce(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			kg := NewNonce(tt.args.passphrase, tt.args.options...)
+			kg := provider.NewNonce(tt.args.passphrase, tt.args.options...)
 			got := kg.Bytes()
 			gotHex := hex.EncodeToString(got)
 
@@ -283,7 +284,7 @@ func TestNewNonce(t *testing.T) {
 }
 
 func TestNewIv(t *testing.T) {
-	DefaultProvider.SaltFunc = func() string { return "testsalt" } // TODO: Provider += KDF
+	provider := testProvider()
 
 	type args struct {
 		passphrase string
@@ -331,7 +332,7 @@ func TestNewIv(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			kg := NewIv(tt.args.passphrase, tt.args.options...)
+			kg := provider.NewIv(tt.args.passphrase, tt.args.options...)
 			got := kg.Bytes()
 			gotHex := hex.EncodeToString(got)
 
@@ -343,10 +344,10 @@ func TestNewIv(t *testing.T) {
 }
 
 func TestNewRandomIv(t *testing.T) {
-	DefaultProvider.SaltFunc = func() string { return "testsalt" } // TODO: Provider += KDF
+	provider := testProvider()
 
-	iv1 := NewRandomIv()
-	iv2 := NewRandomIv()
+	iv1 := provider.NewRandomIv()
+	iv2 := provider.NewRandomIv()
 
 	if reflect.DeepEqual(iv1.Bytes(), iv2.Bytes()) {
 		t.Errorf("NewRandomIv() = %v, want random", iv1.Bytes())
@@ -354,14 +355,31 @@ func TestNewRandomIv(t *testing.T) {
 	// t.Logf("iv1: %x, iv2: %x", iv1.Bytes(), iv2.Bytes())
 }
 
+// derive a key from a passphrase, with the default provider settings.
 func ExampleNewKey() {
-	// derive a key from a passphrase
-
 	passphrase := "my-secret-key"
 	keyLen := Aes256 // 32
 	salt := "NaCl"
 
 	key := NewKey(passphrase, keyLen, salt)
+
+	// use the key for encryption or any other purpose
+	_ = key
+}
+
+// derive a key from a passphrase, with custom provider settings.
+func ExampleProvider_NewKey() {
+	provider := Provider{
+		StringCodec:   HexCodec,
+		SaltFunc:      func() string { return "NaCl" },
+		KeyDerivation: kdf.RecommendedArgon2id(),
+	}
+
+	passphrase := "my-secret-key"
+	keyLen := Aes256 // 32
+	salt := "NaCl"
+
+	key := provider.NewKey(passphrase, keyLen, salt)
 
 	// use the key for encryption or any other purpose
 	_ = key
