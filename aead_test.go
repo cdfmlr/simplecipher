@@ -13,7 +13,7 @@ func FuzzNewGCM(f *testing.F) {
 	f.Add([]byte("key0key1key2key3key4key5key6key7"), []byte("nonce0nonce1"), []byte("additionalData"), "plain-text-plain")
 
 	f.Fuzz(func(t *testing.T, key, nonce []byte, additionalData []byte, plaintext string) {
-		// fix strange behavior of go fuzz that fucks with GCM:
+		// fix strange behavior of go fuzz that interferes with GCM:
 		// Encrypt error: recovered from panic: crypto/cipher: invalid buffer overlap of output and additional data
 		key = append([]byte{}, key...)
 		nonce = append([]byte{}, nonce...)
@@ -85,7 +85,7 @@ func FuzzNewGCMStream(f *testing.F) {
 	f.Add([]byte("key0key1key2key3key4key5key6key7"), []byte("nonce0nonce1"), []byte("additionalData"), "plain-text-plain")
 
 	f.Fuzz(func(t *testing.T, key, nonce []byte, additionalData []byte, plaintext string) {
-		// fix strange behavior of go fuzz that fucks with GCM:
+		// fix strange behavior of go fuzz that interferes with GCM:
 		// Encrypt error: recovered from panic: crypto/cipher: invalid buffer overlap of output and additional data
 		key = append([]byte{}, key...)
 		nonce = append([]byte{}, nonce...)
