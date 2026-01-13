@@ -11,7 +11,7 @@ import (
 //
 // Available modes are:
 //
-//   - CFB (Cipher Feedback)
+//   - CFB (Block Feedback)
 //   - OFB (Output Feedback)
 //   - CTR (Counter)
 //
@@ -87,7 +87,7 @@ func (s *steam) DecryptStream(cipherText io.Reader, plainText io.Writer) (err er
 	return nil
 }
 
-//////// CFB, OFB, CTR ////////
+// ////// CFB, OFB, CTR ////////
 
 // cipherStreamBuilder is a function that creates a new [cipher.Stream].
 // Available implementations are cfbStreamBuilder, ofbStreamBuilder, and ctrStreamBuilder.
@@ -134,7 +134,7 @@ const (
 	decrypt
 )
 
-//////// Exported Constructors ////////
+// ////// Exported Constructors ////////
 
 // NewCFBStream creates a new CFB stream cipher with the given key and iv using the DefaultProvider.
 //

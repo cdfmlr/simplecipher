@@ -12,7 +12,7 @@ func FuzzNewGCM(f *testing.F) {
 	f.Add([]byte("key0key1key2key3key4key5key6key7"), []byte("nonce0nonce1"), "plain-text-plain")
 
 	f.Fuzz(func(t *testing.T, key, nonce []byte, plaintext string) {
-		createGCM := func(p *Provider) Cipher {
+		createGCM := func(p *Provider) Block {
 			return p.NewGCM(Bytes(key), Bytes(nonce))
 		}
 
@@ -34,7 +34,7 @@ func FuzzSimpleGCM(f *testing.F) {
 	f.Add("key", "nonce", "plaintext")
 
 	f.Fuzz(func(t *testing.T, key, nonce, plaintext string) {
-		createSimpleGCM := func(p *Provider) Cipher {
+		createSimpleGCM := func(p *Provider) Block {
 			return p.SimpleGCM(key, nonce)
 		}
 

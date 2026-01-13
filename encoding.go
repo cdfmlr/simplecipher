@@ -6,7 +6,7 @@ import (
 	"encoding/hex"
 )
 
-// This file provides encoding and decoding functions for Cipher ciphertexts.
+// This file provides encoding and decoding functions for Block ciphertexts.
 // Available encoding formats are:
 //
 //   - Hex
@@ -14,13 +14,13 @@ import (
 //   - Base32
 
 // StringCodec is an interface that provides encoding and decoding functions
-// for Cipher ciphertexts.
+// for Block ciphertexts.
 type StringCodec interface {
 	EncodeToString(src []byte) string
 	DecodeString(s string) ([]byte, error)
 }
 
-// DefaultStringCodec is the default [StringCodec] used by [Cipher] implementations.
+// DefaultStringCodec is the default [StringCodec] used by [Block] implementations.
 // It is set to [HexCodec] by default.
 //
 // You can change it to [Base64StdCodec], [Base64URLCodec], [Base32StdCodec], or [Base32HexCodec]:

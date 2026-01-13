@@ -16,7 +16,7 @@ import (
 //
 // It repeats the same process with another cipher instance created
 // to check if the implementation is deterministic.
-func testCipher(name string, t *testing.T, newCipher func(p *Provider) Cipher, plaintext string) {
+func testCipher(name string, t *testing.T, newCipher func(p *Provider) Block, plaintext string) {
 	// Make sure not using the default salt value
 	// for (maybe) a tiny bit of more security for lazy users who don't
 	// provide their own salt.
@@ -66,7 +66,7 @@ func testCipher(name string, t *testing.T, newCipher func(p *Provider) Cipher, p
 
 // testErrorCipher tests the given cipher implementation with a wrong setting.
 // It is expected to error out (but not panic) when encrypting or decrypting.
-func testErrorCipher(name string, t *testing.T, newCipher func(p *Provider) Cipher, plaintext string) {
+func testErrorCipher(name string, t *testing.T, newCipher func(p *Provider) Block, plaintext string) {
 	p := testProvider()
 
 	cipher := newCipher(p)
@@ -102,7 +102,7 @@ func FuzzNewCBC(f *testing.F) {
 	f.Add([]byte("badkey"), []byte("badnonce"), "badplaintext")
 
 	f.Fuzz(func(t *testing.T, key, iv []byte, plaintext string) {
-		createNewCBC := func(p *Provider) Cipher {
+		createNewCBC := func(p *Provider) Block {
 			return p.NewCBC(Bytes(key), Bytes(iv))
 		}
 
@@ -134,7 +134,7 @@ func FuzzSimpleCBC(f *testing.F) {
 	f.Add("key", "plain-text-plain")
 
 	f.Fuzz(func(t *testing.T, key, plaintext string) {
-		createSimpleCBC := func(p *Provider) Cipher {
+		createSimpleCBC := func(p *Provider) Block {
 			return p.SimpleCBC(key)
 		}
 
@@ -143,10 +143,10 @@ func FuzzSimpleCBC(f *testing.F) {
 }
 
 func FuzzNewStreamAsBlock(f *testing.F) {
-	newBlocks := map[string]func(p *Provider, key, iv Key) Cipher{
-		"NewCFB": func(p *Provider, key, iv Key) Cipher { return p.NewCFB(key, iv) },
-		"NewCTR": func(p *Provider, key, iv Key) Cipher { return p.NewCTR(key, iv) },
-		"NewOFB": func(p *Provider, key, iv Key) Cipher { return p.NewOFB(key, iv) },
+	newBlocks := map[string]func(p *Provider, key, iv Key) Block{
+		"NewCFB": func(p *Provider, key, iv Key) Block { return p.NewCFB(key, iv) },
+		"NewCTR": func(p *Provider, key, iv Key) Block { return p.NewCTR(key, iv) },
+		"NewOFB": func(p *Provider, key, iv Key) Block { return p.NewOFB(key, iv) },
 	}
 
 	// key: bytes, nonce: bytes, plaintext: string
@@ -156,7 +156,7 @@ func FuzzNewStreamAsBlock(f *testing.F) {
 
 	f.Fuzz(func(t *testing.T, key, iv []byte, plaintext string) {
 		for name, newBlock := range newBlocks {
-			createNewBlock := func(p *Provider) Cipher {
+			createNewBlock := func(p *Provider) Block {
 				return newBlock(p, Bytes(key), Bytes(iv))
 			}
 
@@ -175,10 +175,10 @@ func FuzzNewStreamAsBlock(f *testing.F) {
 }
 
 func FuzzSimpleStreamAsBlock(f *testing.F) {
-	newBlocks := map[string]func(*Provider, string) Cipher{
-		"SimpleCFB": func(p *Provider, key string) Cipher { return p.SimpleCFB(key) },
-		"SimpleCTR": func(p *Provider, key string) Cipher { return p.SimpleCTR(key) },
-		"SimpleOFB": func(p *Provider, key string) Cipher { return p.SimpleOFB(key) },
+	newBlocks := map[string]func(*Provider, string) Block{
+		"SimpleCFB": func(p *Provider, key string) Block { return p.SimpleCFB(key) },
+		"SimpleCTR": func(p *Provider, key string) Block { return p.SimpleCTR(key) },
+		"SimpleOFB": func(p *Provider, key string) Block { return p.SimpleOFB(key) },
 	}
 
 	// key: string, plaintext: string
@@ -187,7 +187,7 @@ func FuzzSimpleStreamAsBlock(f *testing.F) {
 
 	f.Fuzz(func(t *testing.T, key, plaintext string) {
 		for name, newBlock := range newBlocks {
-			createSimpleBlock := func(p *Provider) Cipher {
+			createSimpleBlock := func(p *Provider) Block {
 				return newBlock(p, key)
 			}
 

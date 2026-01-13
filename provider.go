@@ -39,7 +39,7 @@ var DefaultProvider = &Provider{
 	KeyDerivation: kdf.CheapArgon2id(), // Time: 1, Memory: 16*1024, Threads: 1
 }
 
-// ============ Block Cipher Methods ============
+// ============ Block Block Methods ============
 
 // NewCBC creates a new CBC cipher with the given key and iv.
 //
@@ -55,7 +55,7 @@ var DefaultProvider = &Provider{
 // Use [Provider.SimpleCBC] if you are not familiar with these.
 //
 // See also: [cipher.NewCBCDecrypter], [cipher.NewCBCEncrypter] for low-level usage.
-func (p *Provider) NewCBC(key, iv Key) Cipher {
+func (p *Provider) NewCBC(key, iv Key) Block {
 	return newCBC(key, iv, p)
 }
 
@@ -71,7 +71,7 @@ func (p *Provider) NewCBC(key, iv Key) Cipher {
 // with PKCS7 padding.
 //
 // See also: [Provider.NewCBC] for more control.
-func (p *Provider) SimpleCBC(keyPassphrase string) Cipher {
+func (p *Provider) SimpleCBC(keyPassphrase string) Block {
 	return newSimpleCBC(keyPassphrase, p)
 }
 
@@ -86,7 +86,7 @@ func (p *Provider) SimpleCBC(keyPassphrase string) Cipher {
 // Use [Provider.SimpleCFB] if you are not familiar with this.
 //
 // See also: [cipher.NewCFBDecrypter], [cipher.NewCFBEncrypter] for low-level usage.
-func (p *Provider) NewCFB(key, iv Key) Cipher {
+func (p *Provider) NewCFB(key, iv Key) Block {
 	return newStreamToBlock(p.NewCFBStream(key, iv), p)
 }
 
@@ -94,7 +94,7 @@ func (p *Provider) NewCFB(key, iv Key) Cipher {
 // the given keyPassphrase and a random iv prepended to the ciphertext.
 //
 // See also: [Provider.NewCFB] for more control.
-func (p *Provider) SimpleCFB(keyPassphrase string) Cipher {
+func (p *Provider) SimpleCFB(keyPassphrase string) Block {
 	return newStreamToBlock(p.SimpleCFBStream(keyPassphrase), p)
 }
 
@@ -109,7 +109,7 @@ func (p *Provider) SimpleCFB(keyPassphrase string) Cipher {
 // Use [Provider.SimpleOFB] if you are not familiar with this.
 //
 // See also: [cipher.NewOFB] for low-level usage.
-func (p *Provider) NewOFB(key, iv Key) Cipher {
+func (p *Provider) NewOFB(key, iv Key) Block {
 	return newStreamToBlock(p.NewOFBStream(key, iv), p)
 }
 
@@ -117,7 +117,7 @@ func (p *Provider) NewOFB(key, iv Key) Cipher {
 // the given keyPassphrase and a random iv prepended to the ciphertext.
 //
 // See also: [Provider.NewOFB] for more control.
-func (p *Provider) SimpleOFB(keyPassphrase string) Cipher {
+func (p *Provider) SimpleOFB(keyPassphrase string) Block {
 	return newStreamToBlock(p.SimpleOFBStream(keyPassphrase), p)
 }
 
@@ -132,7 +132,7 @@ func (p *Provider) SimpleOFB(keyPassphrase string) Cipher {
 // Use [Provider.SimpleCTR] if you are not familiar with this.
 //
 // See also: [cipher.NewCTR] for low-level usage.
-func (p *Provider) NewCTR(key, iv Key) Cipher {
+func (p *Provider) NewCTR(key, iv Key) Block {
 	return newStreamToBlock(p.NewCTRStream(key, iv), p)
 }
 
@@ -140,11 +140,11 @@ func (p *Provider) NewCTR(key, iv Key) Cipher {
 // the given keyPassphrase and a random iv prepended to the ciphertext.
 //
 // See also: [Provider.NewCTR] for more control.
-func (p *Provider) SimpleCTR(keyPassphrase string) Cipher {
+func (p *Provider) SimpleCTR(keyPassphrase string) Block {
 	return newStreamToBlock(p.SimpleCTRStream(keyPassphrase), p)
 }
 
-// ============ Stream Cipher Methods ============
+// ============ Stream Block Methods ============
 
 // NewCFBStream creates a new CFB stream cipher with the given key and iv.
 //
@@ -227,7 +227,7 @@ func (p *Provider) SimpleCTRStream(keyPassphrase string) Stream {
 	return p.NewCTRStream(p.NewAesKey(keyPassphrase), p.NewRandomIv())
 }
 
-// ============ AEAD Cipher Methods ============
+// ============ AEAD Block Methods ============
 
 // NewGCM creates a new GCM cipher with the given key and nonce.
 // It's caller's responsibility to ensure the following:
@@ -238,7 +238,7 @@ func (p *Provider) SimpleCTRStream(keyPassphrase string) Stream {
 // Use [Provider.SimpleGCM] if you are not familiar with these.
 //
 // See also: [cipher.NewGCM] for low-level usage.
-func (p *Provider) NewGCM(key, nonce Key) Cipher {
+func (p *Provider) NewGCM(key, nonce Key) Block {
 	return newGCM(key, nonce, p)
 }
 
@@ -254,7 +254,7 @@ func (p *Provider) NewGCM(key, nonce Key) Cipher {
 // SimpleGCM and the same passphrases passed to it.
 //
 // See also: [Provider.NewGCM]
-func (p *Provider) SimpleGCM(keyPassphrase, noncePassphrase string) Cipher {
+func (p *Provider) SimpleGCM(keyPassphrase, noncePassphrase string) Block {
 	return p.NewGCM(p.NewAesKey(keyPassphrase), p.NewNonce(noncePassphrase))
 }
 

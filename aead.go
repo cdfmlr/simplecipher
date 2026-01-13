@@ -23,22 +23,22 @@ import (
 //       the ciphertext should be:
 //           [ Nonce ] + [ Ciphertext ] + [ Additional ].
 //       the interface should be:
-//           func SimpleGCM(keyPassphrase, additionalPassphrase string) Cipher
+//           func SimpleGCM(keyPassphrase, additionalPassphrase string) Block
 // TODO: feat(GCM): GCM can support stream.
 // TODO: docs(GCM): GCM can be preferred then CTR in docs after these changes,
 //       because GCM provides integrity check and it's actually The Gold Standard.
 
-// gcm is the AES-GCM cipher mode implementation for the [Cipher] interface.
+// gcm is the AES-GCM cipher mode implementation for the [Block] interface.
 type gcm struct {
 	key    Key
 	nonce  Key
 	config *config
 }
 
-var _ Cipher = (*gcm)(nil)
+var _ Block = (*gcm)(nil)
 
 // newGCM is an internal constructor used by Provider.
-func newGCM(key, nonce Key, provider *Provider) Cipher {
+func newGCM(key, nonce Key, provider *Provider) Block {
 	return &gcm{key: key, nonce: nonce, config: provider}
 }
 
@@ -51,7 +51,7 @@ func newGCM(key, nonce Key, provider *Provider) Cipher {
 // Use [SimpleGCM] if you are not familiar with these.
 //
 // See also: [cipher.NewGCM] for low-level usage.
-func NewGCM(key, nonce Key) Cipher {
+func NewGCM(key, nonce Key) Block {
 	return DefaultProvider.NewGCM(key, nonce)
 }
 
@@ -67,7 +67,7 @@ func NewGCM(key, nonce Key) Cipher {
 // SimpleGCM and the same passphrases passed to it.
 //
 // See also: [NewGCM]
-func SimpleGCM(keyPassphrase, noncePassphrase string) Cipher {
+func SimpleGCM(keyPassphrase, noncePassphrase string) Block {
 	return DefaultProvider.SimpleGCM(keyPassphrase, noncePassphrase)
 }
 

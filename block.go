@@ -11,8 +11,8 @@ import (
 //
 // Available modes are:
 //
-//   - CBC (Cipher Block Chaining)
-//   - CFB (Cipher Feedback)
+//   - CBC (Block Block Chaining)
+//   - CFB (Block Feedback)
 //   - OFB (Output Feedback)
 //   - CTR (Counter)
 //
@@ -20,17 +20,17 @@ import (
 //  - https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Confidentiality_only_modes
 //  - https://pkg.go.dev/crypto/cipher@go1.23.1#Block
 
-// cbc is the AES-CBC cipher mode implementation for the [Cipher] interface.
+// cbc is the AES-CBC cipher mode implementation for the [Block] interface.
 type cbc struct {
 	key    Key
 	iv     Key
 	config *config
 }
 
-var _ Cipher = (*cbc)(nil)
+var _ Block = (*cbc)(nil)
 
 // newCBC creates a new CBC cipher with the given key, iv, and provider.
-func newCBC(key, iv Key, provider *Provider) Cipher {
+func newCBC(key, iv Key, provider *Provider) Block {
 	return &cbc{key: key, iv: iv, config: provider}
 }
 
@@ -48,7 +48,7 @@ func newCBC(key, iv Key, provider *Provider) Cipher {
 // Use [SimpleCBC] if you are not familiar with these.
 //
 // See also: [cipher.NewCBCDecrypter], [cipher.NewCBCEncrypter] for low-level usage.
-func NewCBC(key, iv Key) Cipher {
+func NewCBC(key, iv Key) Block {
 	return DefaultProvider.NewCBC(key, iv)
 }
 
@@ -135,7 +135,7 @@ type simpleCBC struct {
 }
 
 // newSimpleCBC creates a new AES-256-CBC cipher with the given key using the provider.
-func newSimpleCBC(keyPassphrase string, provider *Provider) Cipher {
+func newSimpleCBC(keyPassphrase string, provider *Provider) Block {
 	return &simpleCBC{cbc: cbc{key: provider.NewAesKey(keyPassphrase), iv: provider.NewRandomIv(), config: provider}}
 }
 
@@ -151,7 +151,7 @@ func newSimpleCBC(keyPassphrase string, provider *Provider) Cipher {
 // with PKCS7 padding.
 //
 // See also: [NewCBC] for more control.
-func SimpleCBC(keyPassphrase string) Cipher {
+func SimpleCBC(keyPassphrase string) Block {
 	return DefaultProvider.SimpleCBC(keyPassphrase)
 }
 
@@ -173,9 +173,9 @@ func (c *simpleCBC) Decrypt(cipherText string) (plainText string, err error) {
 	return string(plaintext), err
 }
 
-//////// Wrap stream.go cipher to block cipher ////////
+// ////// Wrap stream.go cipher to block cipher ////////
 
-// streamToBlock is a wrapper to convert a [Stream] to a Block [Cipher].
+// streamToBlock is a wrapper to convert a [Stream] to a Block [Block].
 //
 // It creates byte buffers to store the plaintext and ciphertext,
 // and uses the EncryptStream and DecryptStream methods of the [Stream]
@@ -188,9 +188,9 @@ type streamToBlock struct {
 	config *config
 }
 
-var _ Cipher = (*streamToBlock)(nil)
+var _ Block = (*streamToBlock)(nil)
 
-func newStreamToBlock(sc Stream, provider *Provider) Cipher {
+func newStreamToBlock(sc Stream, provider *Provider) Block {
 	return &streamToBlock{Stream: sc, config: provider}
 }
 
@@ -242,7 +242,7 @@ func (s *streamToBlock) Decrypt(cipherText string) (plainText string, err error)
 // Use SimpleCFB if you are not familiar with this.
 //
 // See also: [cipher.NewCFBDecrypter], [cipher.NewCFBEncrypter] for low-level usage.
-func NewCFB(key, iv Key) Cipher {
+func NewCFB(key, iv Key) Block {
 	return DefaultProvider.NewCFB(key, iv)
 }
 
@@ -250,7 +250,7 @@ func NewCFB(key, iv Key) Cipher {
 // the given keyPassphrase and a random iv prepended to the ciphertext.
 //
 // See also: [NewCFB] for more control.
-func SimpleCFB(keyPassphrase string) Cipher {
+func SimpleCFB(keyPassphrase string) Block {
 	return DefaultProvider.SimpleCFB(keyPassphrase)
 }
 
@@ -265,7 +265,7 @@ func SimpleCFB(keyPassphrase string) Cipher {
 // Use [SimpleOFB] if you are not familiar with this.
 //
 // See also: [cipher.NewOFB] for low-level usage.
-func NewOFB(key, iv Key) Cipher {
+func NewOFB(key, iv Key) Block {
 	return DefaultProvider.NewOFB(key, iv)
 }
 
@@ -273,7 +273,7 @@ func NewOFB(key, iv Key) Cipher {
 // the given keyPassphrase and a random iv prepended to the ciphertext.
 //
 // See also: [NewOFB] for more control.
-func SimpleOFB(keyPassphrase string) Cipher {
+func SimpleOFB(keyPassphrase string) Block {
 	return DefaultProvider.SimpleOFB(keyPassphrase)
 }
 
@@ -288,7 +288,7 @@ func SimpleOFB(keyPassphrase string) Cipher {
 // Use [SimpleCTR] if you are not familiar with this.
 //
 // See also: [cipher.NewCTR] for low-level usage.
-func NewCTR(key, iv Key) Cipher {
+func NewCTR(key, iv Key) Block {
 	return DefaultProvider.NewCTR(key, iv)
 }
 
@@ -296,6 +296,6 @@ func NewCTR(key, iv Key) Cipher {
 // the given keyPassphrase and a random iv prepended to the ciphertext.
 //
 // See also: [NewCTR] for more control.
-func SimpleCTR(keyPassphrase string) Cipher {
+func SimpleCTR(keyPassphrase string) Block {
 	return DefaultProvider.SimpleCTR(keyPassphrase)
 }
