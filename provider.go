@@ -255,6 +255,37 @@ func (p *Provider) SimpleGCM(keyPassphrase, additionalPassphrase string) Block {
 	return p.NewGCM(p.NewAesKey(keyPassphrase), p.NewRandomNonce(), p.NewNonce(additionalPassphrase))
 }
 
+// ============ AEAD Stream Methods ============
+
+// NewGCMStream creates a new GCM stream cipher with the given key, nonce and additional data.
+//
+// The nonce will be prepended to the ciphertext during encryption,
+// and the first NonceSize bytes of the ciphertext will be treated as the nonce during decryption.
+//
+// It's caller's responsibility to ensure the following:
+//
+//   - The key must be 16 or 32 bytes long to select AES-128 or AES-256.
+//   - The nonce must be 12 bytes long.
+//
+// Use [Provider.SimpleGCMStream] if you are not familiar with these.
+// See also: [cipher.NewGCM] for low-level usage.
+func (p *Provider) NewGCMStream(key, nonce, additionalData Key) Stream {
+	return newGCMStream(key, nonce, additionalData)
+}
+
+// SimpleGCMStream creates a new AES-256-GCM stream cipher from the given key and additional data.
+//
+// The keyPassphrase and additionalPassphrase parameters can be any arbitrary strings.
+// SimpleGCMStream will derive the real key, nonce and additionalData used in the GCM mode
+// from these passphrases via Provider.KeyDerivation with the Provider.SaltFunc().
+//
+// The nonce used in this SimpleGCMStream implementation is randomly generated and prepended to the ciphertext.
+//
+// See also: [Provider.NewGCMStream] for more control.
+func (p *Provider) SimpleGCMStream(keyPassphrase, additionalPassphrase string) Stream {
+	return p.NewGCMStream(p.NewAesKey(keyPassphrase), p.NewRandomNonce(), p.NewNonce(additionalPassphrase))
+}
+
 // ============ Key Derivation Methods ============
 
 // NewKey derives a new key in the specified length from the passphrase.
