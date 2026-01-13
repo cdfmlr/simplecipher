@@ -38,7 +38,7 @@ func newGCM(key, nonce, additionalData Key, provider *Provider) Block {
 // NewGCM creates a new GCM cipher with the given key and nonce using the DefaultProvider.
 // It's caller's responsibility to ensure the following:
 //
-//   - The key must be 16 or 32 bytes long to select AES-128 or AES-256.
+//   - The key must be 16, 24, or 32 bytes long to select AES-128, AES-192, or AES-256.
 //   - The nonce must be 12 bytes long.
 //
 // Use [SimpleGCM] if you are not familiar with these.
@@ -245,7 +245,7 @@ func (g *gcmStream) DecryptStream(cipherText io.Reader, plainText io.Writer) (er
 //
 // It's caller's responsibility to ensure the following:
 //
-//   - The key must be 16 or 32 bytes long to select AES-128 or AES-256.
+//   - The key must be 16, 24, or 32 bytes long to select AES-128, AES-192, or AES-256.
 //   - The nonce must be 12 bytes long.
 //
 // Use [SimpleGCMStream] if you are not familiar with these.
