@@ -1,6 +1,8 @@
 package kdf
 
 import (
+	"fmt"
+
 	cryptoArgon2 "golang.org/x/crypto/argon2"
 )
 
@@ -35,10 +37,37 @@ func NewArgon2id(time uint32, memory uint32, threads uint8) KeyDerivation {
 
 var _ KeyDerivation = (*argon2id)(nil)
 
+func (a *argon2id) check() error {
+	if a.Time == 0 {
+		return fmt.Errorf("%w: argon2id time parameter must be greater than zero", ErrKdfConfig)
+	}
+	if a.Memory == 0 {
+		return fmt.Errorf("%w: argon2id memory parameter must be greater than zero", ErrKdfConfig)
+	}
+	if a.Threads == 0 {
+		return fmt.Errorf("%w: argon2id threads parameter must be greater than zero", ErrKdfConfig)
+	}
+	return nil
+}
+
 // Derive a key from the given password and salt using argon2id.
 // Remember to get a good random salt.
 func (a *argon2id) Derive(password, salt []byte, keyLen int) (key []byte, err error) {
 	defer recoverFromPanic(&err)
+
+	if err := a.check(); err != nil {
+		return nil, err
+	}
+
+	if keyLen == 0 {
+		return []byte{}, nil
+	}
+	if keyLen < 0 {
+		return nil, ErrNegKeyLen
+	}
+	if keyLen > 1<<31 {
+		return nil, fmt.Errorf("%w: key length too large", ErrKdfConfig)
+	}
 
 	key = cryptoArgon2.IDKey(password, salt, a.Time, a.Memory, a.Threads, uint32(keyLen))
 	return key, nil

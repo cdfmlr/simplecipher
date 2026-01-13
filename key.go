@@ -93,6 +93,19 @@ func NewKey(passphrase string, len KeyLen, salt string) Key {
 	return newKeyGen(passphrase, len, salt, DefaultProvider.KeyDerivation)
 }
 
+func (k *keyGen) check() {
+	if k.KeyDerivation == nil {
+		k.KeyDerivation = DefaultProvider.KeyDerivation
+	}
+	if k.KeyDerivation == nil {
+		k.KeyDerivation = kdf.RecommendedArgon2id()
+	}
+
+	if k.Len < 0 {
+		k.Len = 0
+	}
+}
+
 // Bytes return the key as a byte slice.
 //
 // It will derive bytes in correct length (Len) from the input (Passphrase) key.

@@ -1,6 +1,8 @@
 package kdf
 
 import (
+	"fmt"
+
 	cryptoScrypt "golang.org/x/crypto/scrypt"
 )
 
@@ -33,10 +35,47 @@ func NewScrypt(N, r, p int) KeyDerivation {
 
 var _ KeyDerivation = (*scrypt)(nil)
 
+func (s *scrypt) check() error {
+	if s.N <= 1 {
+		return fmt.Errorf("%w: scrypt N parameter must be greater than 1", ErrKdfConfig)
+	}
+	if s.R <= 0 {
+		return fmt.Errorf("%w: scrypt r parameter must be greater than zero", ErrKdfConfig)
+	}
+	if s.P <= 0 {
+		return fmt.Errorf("%w: scrypt p parameter must be greater than zero", ErrKdfConfig)
+	}
+
+	// // cryptoScrypt.Key will do the slow checks itself,
+	// // so we can skip them here.
+	//
+	// if (s.N & (s.N - 1)) != 0 {
+	// 	return fmt.Errorf("%w: scrypt N parameter must be a power of two", ErrKdfConfig)
+	// }
+	// if uint64(s.R)*uint64(s.P) >= 1<<30 {
+	// 	return fmt.Errorf("%w: scrypt r and p parameters must satisfy r * p < 2^30", ErrKdfConfig)
+	// }
+	return nil
+}
+
 // Derive a key from the given password and salt using scrypt.
 // Remember to get a good random salt.
 func (s *scrypt) Derive(password, salt []byte, keyLen int) (key []byte, err error) {
 	defer recoverFromPanic(&err)
+
+	if err := s.check(); err != nil {
+		return nil, err
+	}
+
+	if keyLen == 0 {
+		return []byte{}, nil
+	}
+	if keyLen < 0 {
+		return nil, ErrNegKeyLen
+	}
+	if keyLen > 1<<31 {
+		return nil, fmt.Errorf("%w: key length too large", ErrKdfConfig)
+	}
 
 	key, err = cryptoScrypt.Key(password, salt, s.N, s.R, s.P, keyLen)
 	return key, err

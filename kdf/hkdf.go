@@ -2,6 +2,7 @@ package kdf
 
 import (
 	"crypto/sha256"
+	"fmt"
 	"hash"
 	"io"
 
@@ -34,10 +35,36 @@ func NewHkdf(hashFunc func() hash.Hash, info []byte, iter int) KeyDerivation {
 
 var _ KeyDerivation = (*hkdf)(nil)
 
+func (h *hkdf) check() error {
+	if h.Iter < 0 {
+		return fmt.Errorf("%w: hkdf iter parameter must be non-negative", ErrKdfConfig)
+	}
+	if h.Hash == nil {
+		return fmt.Errorf("%w: hkdf hash function must be non-nil", ErrKdfConfig)
+	}
+	return nil
+}
+
 // Derive a key from the given password and salt using HKDF.
 // Remember to get a good random salt.
+//
+// The keyLen is limited to maximum of 1<<20 (1M) bytes as HKDF has entropy limit.
 func (h *hkdf) Derive(password, salt []byte, keyLen int) (key []byte, err error) {
 	defer recoverFromPanic(&err)
+
+	if err := h.check(); err != nil {
+		return nil, err
+	}
+
+	if keyLen == 0 {
+		return []byte{}, nil
+	}
+	if keyLen < 0 {
+		return nil, ErrNegKeyLen
+	}
+	if keyLen > 1<<11 {
+		return nil, fmt.Errorf("%w: key length too large: hkdf entropy limit", ErrKdfConfig)
+	}
 
 	hkdfReader := cryptoHkdf.New(h.Hash, password, salt, h.Info)
 

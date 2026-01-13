@@ -6,7 +6,10 @@ import (
 	"crypto/sha256"
 	"crypto/sha512"
 	"encoding/hex"
+	"fmt"
 	"io"
+	"math"
+	"os"
 	"reflect"
 	"testing"
 
@@ -158,6 +161,278 @@ func TestProfileCompatibility(t *testing.T) {
 			t.Logf("%s got expected result: %s", tt.name, gotHex)
 		})
 	}
+}
+
+// skipVeryLongTests controls whether to skip tests with very large parameters.
+// This can be set by env var SKIP_VERY_LONG_TESTS=0 to disable skipping.
+var skipVeryLongTests = true
+
+func init() {
+	if v, ok := os.LookupEnv("SKIP_VERY_LONG_TESTS"); ok {
+		if v == "0" || v == "false" || v == "no" {
+			skipVeryLongTests = false
+		}
+	}
+}
+
+type kdfCase struct {
+	name string
+	kdf  KeyDerivation
+
+	expectError bool
+}
+
+// for better test logging
+func (f kdfCase) String() string {
+	return fmt.Sprintf("kdfCase{name: %q, kdf: %T, expectError: %v}",
+		f.name, f.kdf, f.expectError)
+}
+
+type paramCase struct {
+	name     string
+	password []byte
+	salt     []byte
+	keyLen   int
+
+	expectError    bool
+	expectedKeyLen int
+}
+
+// for better test logging, avoid printing the full password/salt content (maybe too long)
+func (p paramCase) String() string {
+	return fmt.Sprintf("paramCase{name: %q, passwordLen: %d, saltLen: %d, keyLen: %d, expectError: %v, expectedKeyLen: %d}",
+		p.name, len(p.password), len(p.salt), p.keyLen, p.expectError, p.expectedKeyLen)
+}
+
+func TestKeyDerivation_Derive_EdgeCases(t *testing.T) {
+	goodKdfs := []kdfCase{
+		{"RecommendedArgon2id", RecommendedArgon2id(), false},
+		{"RecommendedScrypt", RecommendedScrypt(), false},
+		{"RecommendedPbkdf2", RecommendedPbkdf2(), false},
+		{"RecommendedHkdf", RecommendedHkdf(), false},
+	}
+
+	edgeKdfs := []kdfCase{
+		{"badArgon2id", NewArgon2id(0, 0, 0), true},
+		{"badScrypt", NewScrypt(0, -4, 0), true},
+		{"badPbkdf2", NewPbkdf2(-100, nil), true},
+		{"badHkdf", NewHkdf(nil, nil, 0), true},
+	}
+
+	edgeParams := []paramCase{
+		{"emptyPasswordString", []byte(""), []byte("normal_salt_16b"), 32, false, 32},
+		{"emptyPasswordSlice", []byte{}, []byte("normal_salt_16b"), 32, false, 32},
+		{"nilPassword", nil, []byte("normal_salt_16b"), 32, false, 32},
+
+		{"emptySaltString", []byte("normal_password"), []byte(""), 32, false, 32},
+		{"emptySaltSlice", []byte("normal_password"), []byte{}, 32, false, 32},
+		{"nilSalt", []byte("normal_password"), nil, 32, false, 32},
+
+		{"zeroKeyLen", []byte("normal_password"), []byte("normal_salt_16b"), 0, false, 0},
+		{"negativeKeyLen", []byte("normal_password"), []byte("normal_salt_16b"), -16, true, 0},
+
+		{"emptyPasswordAndSalt", []byte{}, []byte{}, 32, false, 32},
+		{"zeroEverything", nil, nil, 0, false, 0},
+
+		// "long" use a length of 16MB (1 << 24) for testing.
+		{"longPassword", longBytes(1 << 24), []byte("normal_salt_16b"), 32, false, 32},
+		{"longSalt", []byte("normal_password"), longBytes(1 << 24), 32, false, 32},
+		{"longKeyLen", []byte("normal_password"), []byte("normal_salt_16b"), 1 << 24, false, 1 << 24},
+
+		// too large keyLen: error
+		{"exLongKeyLen", []byte("normal_password"), []byte("normal_salt_16b"), 1 << 32, true, 0},
+	}
+
+	// very large parameters that may cause high memory/time consumption.
+	// they use a length of the maximum (1<<32) for testing.
+	// these tests should be skipped in normal test runs! you won't want to run them.
+	veryLong := 1 << 31
+	veryLongParams := []paramCase{
+		{"veryLongPassword", longBytes(veryLong), []byte("normal_salt_16b"), 32, false, 32},
+		{"veryLongSalt", []byte("normal_password"), longBytes(veryLong), 32, false, 32},
+		{"veryLongKeyLen", []byte("normal_password"), []byte("normal_salt_16b"), veryLong, false, veryLong},
+	}
+
+	goodParams := []paramCase{
+		{"normal", []byte("normal_password"), []byte("normal_salt_16b"), 16, false, 16},
+		{"longSalt", []byte("s"), []byte("looong-salt-1234567890-hello-world-foo-bar"), 16, false, 16},
+		{"longPass", []byte("looong-pass-1234567890-hello-world-foo-bar"), []byte("s"), 16, false, 16},
+	}
+
+	// a testsMatrixItem is a set of kdfCases x paramCases to run tests on
+	// where the x means the Cartesian product.
+	type testsMatrixItem struct {
+		name       string
+		kdfCases   []kdfCase
+		paramCases []paramCase
+	}
+
+	// we have two test sets that may be interesting:
+	// - goodKdfs x edgeParams
+	// - edgeKdfs x goodParams
+	// and there are also two more combinations that are a bit more trivial:
+	// - goodKdfs x goodParams
+	// - edgeKdfs x edgeParams
+	testsMatrix := []testsMatrixItem{
+		{"GKEP", goodKdfs, edgeParams},
+		{"EKGP", edgeKdfs, goodParams},
+
+		{"GKGP", goodKdfs, goodParams},
+		{"EKEP", edgeKdfs, edgeParams},
+	}
+
+	if !skipVeryLongTests {
+		testsMatrix = append(testsMatrix,
+			testsMatrixItem{"GKVP", goodKdfs, veryLongParams},
+			testsMatrixItem{"EKVP", edgeKdfs, veryLongParams},
+		)
+	}
+	// testsMatrix = []testsMatrixItem{}  // skip all tests for quick debugging
+
+	for _, c := range testsMatrix {
+		for _, f := range c.kdfCases {
+			for _, p := range c.paramCases {
+				name := c.name + "_" + f.name + "_" + p.name
+				t.Run(name, func(t *testing.T) {
+					// specially, skip long keyLen tests for pbkdf2 and hkdf:
+					// - pbkdf2 takes more than 1hr to run with the long (1<<24) keyLen test.
+					// - hkdf will error: entropy limit reached when keyLen is too long.
+					_, isPbkdf2 := f.kdf.(*pbkdf2)
+					_, isHkdf := f.kdf.(*hkdf)
+					if (isPbkdf2 || isHkdf) && p.keyLen >= (1<<20) {
+						t.Skipf("%s: skipping test for pbkdf2/hkdf with very long keyLen=%d", name, p.keyLen)
+					}
+
+					testKeyDerivation(t, f, p, name)
+				})
+			}
+		}
+	}
+
+	specialCases := []struct {
+		name      string
+		kdfCase   kdfCase
+		paramCase paramCase
+		skip      bool
+	}{
+		{
+			name:      "SPEC_RecommendedPbkkdf2_longKeyLen",
+			kdfCase:   kdfCase{name: "RecommendedPbkdf2", kdf: RecommendedPbkdf2()},
+			paramCase: paramCase{name: "longKeyLen", password: []byte("normal_password"), salt: []byte("normal_salt_16b"), keyLen: 1 << 20, expectError: false, expectedKeyLen: 1 << 20},
+			skip:      skipVeryLongTests, // this takes 5min
+		},
+		{
+			name:      "SPEC_RecommendedPbkkdf2_exLongKeyLen",
+			kdfCase:   kdfCase{name: "RecommendedPbkdf2", kdf: RecommendedPbkdf2()},
+			paramCase: paramCase{name: "exLongKeyLen", password: []byte("normal_password"), salt: []byte("normal_salt_16b"), keyLen: 1 << 24, expectError: true},
+		},
+		{
+			name:      "SPEC_RecommendedHkdf_longKeyLen",
+			kdfCase:   kdfCase{name: "RecommendedHkdf", kdf: RecommendedHkdf()},
+			paramCase: paramCase{name: "longKeyLen", password: []byte("normal_password"), salt: []byte("normal_salt_16b"), keyLen: 1 << 11, expectError: false, expectedKeyLen: 1 << 11},
+		},
+		{
+			name:      "SPEC_RecommendedHkdf_exLongKeyLen",
+			kdfCase:   kdfCase{name: "RecommendedHkdf", kdf: RecommendedHkdf()},
+			paramCase: paramCase{name: "exLongKeyLen", password: []byte("normal_password"), salt: []byte("normal_salt_16b"), keyLen: 1 << 24, expectError: true},
+		},
+	}
+
+	for _, sc := range specialCases {
+		t.Run(sc.name, func(t *testing.T) {
+			if sc.skip {
+				t.Skipf("%s: skipping special case test", sc.name)
+			}
+			testKeyDerivation(t, sc.kdfCase, sc.paramCase, sc.name)
+		})
+	}
+}
+
+func testKeyDerivation(t *testing.T, f kdfCase, p paramCase, name string) {
+	// copy it for overriding
+	// f := f
+	// p := p
+	// no more in need: since the arguments are copied by value already, and now we don't need to override them anymore.
+	t.Logf("testKeyDerivation: \n  name=%q\n  kdf=%v\n  param=%v", name, f.String(), p.String())
+
+	key, err := f.kdf.Derive(p.password, p.salt, p.keyLen)
+
+	expectError := f.expectError || p.expectError
+	if (err != nil) != expectError {
+		t.Errorf("%s: unexpected error status: got error %v, expectError %v (kdf.expectError: %v, param.expectError: %v)",
+			name, err, expectError, f.expectError, p.expectError)
+	} else {
+		t.Logf("%s: got expected error status: %v", name, err)
+	}
+	if err != nil {
+		return
+	}
+
+	if len(key) != p.expectedKeyLen {
+		t.Errorf("%s: unexpected key length: got %d, expected %d",
+			name, len(key), p.expectedKeyLen)
+	}
+	if key == nil {
+		t.Errorf("%s: got nil key", name)
+	}
+
+	// entropy check
+	if p.expectedKeyLen > 1 {
+		e := entropy(string(key))
+		minEntropy := 1.0
+		if e-minEntropy < 1e-6 {
+			// 1 is actually very low for a derived key:
+			// entropy("a") = 0.0000 bits/char
+			// entropy("aa") = 0.0000 bits/char
+			// entropy("ab") = 1.0000 bits/char
+			// entropy("aaaaaa") = 0.0000 bits/char
+			// entropy("aaaaaab") = 0.5917 bits/char
+			// entropy("abcdef") = 2.5850 bits/char
+			// entropy("hello world") = 2.8454 bits/char
+			// entropy("1234567890") = 3.3219 bits/char
+			t.Errorf("%s: derived key entropy too low: %f", name, e)
+		}
+		t.Logf("%s: derived key entropy: %f bits/char", name, e)
+	}
+
+	if len(key) > (1 << 10) {
+		t.Logf("%s: derived key (len=%d): <SKIPPED-RESULT-KEY> (this key is quite long for diplay)", name, len(key))
+	} else {
+		t.Logf("%s: derived key (len=%d): %s", name, len(key), hex.EncodeToString(key))
+	}
+}
+
+// longBytes generates a byte slice of length n with predictable content for testing.
+func longBytes(n int) []byte {
+	b := make([]byte, n)
+	for i := 0; i < n; i++ {
+		b[i] = byte(i % 256)
+	}
+	return b
+}
+
+// entropy calculates the Shannon entropy of a string:
+//
+//	H(X) = - \sum{ p(x) \log_2{p(x)} }
+func entropy(s string) float64 {
+	if len(s) == 0 {
+		return 0
+	}
+
+	freq := make(map[rune]int)
+	for _, r := range s {
+		freq[r]++
+	}
+
+	length := float64(len([]rune(s)))
+	entropy := 0.0
+
+	for _, count := range freq {
+		p := float64(count) / length
+		entropy -= p * math.Log2(p)
+	}
+
+	return entropy
 }
 
 // TestArgon2id tests the Argon2id KeyDerivation implementation
@@ -811,8 +1086,7 @@ func TestHkdf(t *testing.T) {
 
 	t.Run("large key length", func(t *testing.T) {
 		kdf := NewHkdf(sha256.New, nil, 0)
-		// SHA256 can produce up to 255 * HashLen bytes
-		largeKeyLen := 255 * 32
+		largeKeyLen := 1 << 11
 		key, err := kdf.Derive(password, salt, largeKeyLen)
 		if err != nil {
 			t.Fatalf("Derive with large key length failed: %v", err)

@@ -3,6 +3,7 @@ package kdf
 import (
 	"crypto/sha1"
 	"crypto/sha256"
+	"fmt"
 	"hash"
 
 	cryptoPbkdf2 "golang.org/x/crypto/pbkdf2"
@@ -31,12 +32,38 @@ func NewPbkdf2(iter int, hashFunc func() hash.Hash) KeyDerivation {
 
 var _ KeyDerivation = (*pbkdf2)(nil)
 
+func (p *pbkdf2) check() error {
+	if p.Iter <= 0 {
+		return fmt.Errorf("%w: pbkdf2 iter parameter must be greater than zero", ErrKdfConfig)
+	}
+	if p.Hash == nil {
+		return fmt.Errorf("%w: pbkdf2 hash function must be non-nil", ErrKdfConfig)
+	}
+	return nil
+}
+
 // Derive a key from the given password and salt using PBKDF2.
 //
 // Remember to get a good random salt. At least 8 bytes is recommended by the
 // RFC.
+//
+// The keyLen is limited to maximum of 1<<20 (1M) bytes, as PBKDF2 is too slow to derive very large keys.
 func (p *pbkdf2) Derive(password, salt []byte, keyLen int) (key []byte, err error) {
 	defer recoverFromPanic(&err)
+
+	if err := p.check(); err != nil {
+		return nil, err
+	}
+
+	if keyLen == 0 {
+		return []byte{}, nil
+	}
+	if keyLen < 0 {
+		return nil, ErrNegKeyLen
+	}
+	if keyLen > 1<<20 {
+		return nil, fmt.Errorf("%w: key length too large: pbkdf2 is too slow to derive very large keys", ErrKdfConfig)
+	}
 
 	key = cryptoPbkdf2.Key(password, salt, p.Iter, keyLen, p.Hash)
 	return key, nil
