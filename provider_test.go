@@ -706,6 +706,7 @@ func TestCustomKeyDerivation(t *testing.T) {
 
 		t.Logf("DefaultProvider.KeyDerivation: \n%#v", DefaultProvider.KeyDerivation)
 		t.Logf("DefaultProvider.Salt: \n%#v", DefaultProvider.SaltFunc())
+		t.Logf("DefaultProvider.StringCodec: \n%#v", DefaultProvider.StringCodec)
 
 		// Create a manual provider with the same default configuration
 		manualProvider := &Provider{
