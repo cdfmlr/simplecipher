@@ -355,6 +355,38 @@ func TestNewRandomIv(t *testing.T) {
 	// t.Logf("iv1: %x, iv2: %x", iv1.Bytes(), iv2.Bytes())
 }
 
+func TestDefaultNewRandomIv(t *testing.T) {
+	iv1 := NewRandomIv()
+	iv2 := NewRandomIv()
+
+	if reflect.DeepEqual(iv1.Bytes(), iv2.Bytes()) {
+		t.Errorf("NewRandomIv() = %v, want random", iv1.Bytes())
+	}
+	// t.Logf("iv1: %x, iv2: %x", iv1.Bytes(), iv2.Bytes())
+}
+
+func TestKeyGen_Option_WithPassphrase(t *testing.T) {
+	p := testProvider()
+
+	k1 := p.NewAesKey("pass-1").Bytes()
+	k2 := p.NewAesKey("pass-2").Bytes()
+	if reflect.DeepEqual(k1, k2) {
+		t.Fatalf("keys with different passphrases should not be equal: got NewAesKey(%q)=%x, NewAesKey(%q)=%x", "pass-1", k1, "pass-2", k2)
+	}
+
+	kwpo := p.NewAesKey("pass-1", WithPassphrase("pass-2"))
+	kg := kwpo.(*keyGen)
+	if kg.Passphrase != "pass-2" {
+		t.Errorf("WithPassphrase did not override passphrase: got %q, want %q", kg.Passphrase, "pass-2")
+	}
+
+	gotK := kwpo.Bytes()
+	// pass-2 should override pass-1
+	if !reflect.DeepEqual(gotK, k2) {
+		t.Errorf("NewAesKey(%q, WithPassphrase(%q)) did not override passphrase effect: got %x, want %x", "pass-1", "pass-2", gotK, k2)
+	}
+}
+
 // derive a key from a passphrase, with the default provider settings.
 func ExampleNewKey() {
 	passphrase := "my-secret-key"
