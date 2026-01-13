@@ -169,7 +169,7 @@ func Example_aeadEncryption() {
 	}
 
 	// Create a GCM cipher with derived key and nonce
-	cipher := provider.SimpleGCM("key-passphrase", "nonce-passphrase")
+	cipher := provider.SimpleGCM("key-passphrase", "Additional Authenticated Data")
 
 	plaintext := "Authenticated Message"
 	encrypted, err := cipher.Encrypt(plaintext)

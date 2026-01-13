@@ -135,6 +135,9 @@ func TestSimpleCTR_Compatibility(t *testing.T) {
 func TestSimpleGCM_Compatibility(t *testing.T) {
 	cipher := SimpleGCM("hello-gcm-passphrase", "hello-gcm-nonce")
 
+	fixedNonce := NewNonce("test-nonce-for-gcm")
+	cipher.(*gcm).nonce = fixedNonce
+
 	t.Run("keyDerivation", func(t *testing.T) {
 		expectedKey := "b4dc3178e0dac469939124c6c64edd7064e903aa7ab9395c843c9e17781d9db2"
 
@@ -145,7 +148,7 @@ func TestSimpleGCM_Compatibility(t *testing.T) {
 			t.Errorf("Key derivation mismatch: expected %s, got %s", expectedKey, gotHexKey)
 		}
 
-		expectedNonce := "c53f57bccb3c917f1d8f8e8b"
+		expectedNonce := "5713ceee6756f8cedd94c285"
 
 		gotNonce := cipher.(*gcm).nonce.Bytes()
 		gotHexNonce := hex.EncodeToString(gotNonce)
@@ -153,10 +156,19 @@ func TestSimpleGCM_Compatibility(t *testing.T) {
 		if gotHexNonce != expectedNonce {
 			t.Errorf("Nonce derivation mismatch: expected %s, got %s", expectedNonce, gotHexNonce)
 		}
+
+		expectedAad := "c53f57bccb3c917f1d8f8e8b"
+
+		gotAad := cipher.(*gcm).additionalData.Bytes()
+		gotHexAad := hex.EncodeToString(gotAad)
+
+		if gotHexAad != expectedAad {
+			t.Errorf("Aad derivation mismatch: expected %s, got %s", expectedAad, gotHexAad)
+		}
 	})
 
 	plaintext := "The quick brown fox jumps over the lazy dog."
-	expectedCiphertext := "6c312384cfa85579125e5baafd9885f738307d6567cc3973254f0045b8a4d04bed02adab542277ab6ce92dac96fb1dbe4d4880530629f6d426b4a22a"
+	expectedCiphertext := "5713ceee6756f8cedd94c285cbec2ad626d419a71cf11446bc233772a972b96f16c93a8c706f29e21f085437cca8b866748ba9bbac54ae8aba9a3daac7405598f2090620843ede4b"
 
 	t.Run("encryption", func(t *testing.T) {
 		ciphertext, err := cipher.Encrypt(plaintext)

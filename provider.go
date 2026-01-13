@@ -238,24 +238,21 @@ func (p *Provider) SimpleCTRStream(keyPassphrase string) Stream {
 // Use [Provider.SimpleGCM] if you are not familiar with these.
 //
 // See also: [cipher.NewGCM] for low-level usage.
-func (p *Provider) NewGCM(key, nonce Key) Block {
-	return newGCM(key, nonce, p)
+func (p *Provider) NewGCM(key, nonce, additionalData Key) Block {
+	return newGCM(key, nonce, additionalData, p)
 }
 
-// SimpleGCM creates a new AES-256-GCM cipher from the given key and nonce.
+// SimpleGCM creates a new AES-256-GCM cipher from the given key and additional data.
 //
-// The keyPassphrase and noncePassphrase parameters can be any arbitrary strings.
-// SimpleGCM will derive the real key and nonce used in the GCM mode
-// from the these passphrases via scrypt.
+// The keyPassphrase and additionalPassphrase parameters can be any arbitrary strings.
+// SimpleGCM will derive the real key, nonce and additionalData used in the GCM mode
+// from the these passphrases via Provider.KeyDerivation with the Provider.SaltFunc().
 //
-// Attention: SimpleGCM is not compatible with other libraries,
-// because it uses a custom key derivation function.
-// You can only decrypt the encrypted ciphertext with the same version of
-// SimpleGCM and the same passphrases passed to it.
+// The nonce will be a random value.
 //
 // See also: [Provider.NewGCM]
-func (p *Provider) SimpleGCM(keyPassphrase, noncePassphrase string) Block {
-	return p.NewGCM(p.NewAesKey(keyPassphrase), p.NewNonce(noncePassphrase))
+func (p *Provider) SimpleGCM(keyPassphrase, additionalPassphrase string) Block {
+	return p.NewGCM(p.NewAesKey(keyPassphrase), p.NewRandomNonce(), p.NewNonce(additionalPassphrase))
 }
 
 // ============ Key Derivation Methods ============
@@ -305,6 +302,21 @@ func (p *Provider) NewNonce(passphrase string, options ...KeyGenOption) Key {
 	}
 
 	return keygen
+}
+
+// NewRandomNonce creates a new random nonce with default [NonceSize].
+//
+// The output key will be derived from the passphrase via
+// Sequential Memory-Hard Functions with the provider's salt function.
+func (p *Provider) NewRandomNonce() Key {
+	iv := make([]byte, NonceSize)
+	_, err := rand.Read(iv)
+	if err == nil {
+		return Bytes(iv)
+	}
+
+	// Fallback to deterministic generation if crypto/rand fails
+	return p.NewIv(fmt.Sprint(mathrand.Float64(), time.Now()))
 }
 
 // NewIv creates a new IV with [aes.BlockSize] bytes.

@@ -67,7 +67,7 @@ type keyGen struct {
 var _ Key = (*keyGen)(nil)
 
 // KeyLen is a type to indicate the length of the key in bytes.
-type KeyLen int
+type KeyLen = int
 
 func newKeyGen(passphrase string, len KeyLen, salt string, keyDerivation kdf.KeyDerivation) *keyGen {
 	return &keyGen{
@@ -196,6 +196,7 @@ func NewAesKey(passphrase string, options ...KeyGenOption) Key {
 // NonceSize is the default size of the nonce for AEAD ciphers.
 const (
 	NonceSize KeyLen = 12
+	TagSize   KeyLen = 16
 )
 
 // NewNonce creates a new nonce with default [NonceSize] using the DefaultProvider's salt.
@@ -223,4 +224,9 @@ func NewIv(passphrase string, options ...KeyGenOption) Key {
 // NewRandomIv creates a new random IV with [aes.BlockSize] bytes.
 func NewRandomIv() Key {
 	return DefaultProvider.NewRandomIv()
+}
+
+// NewRandomNonce creates a new random nonce with [NonceSize] bytes.
+func NewRandomNonce() Key {
+	return DefaultProvider.NewRandomNonce()
 }

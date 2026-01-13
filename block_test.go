@@ -29,10 +29,14 @@ func testCipher(name string, t *testing.T, newCipher func(p *Provider) Block, pl
 		t.Fatalf("%v: Encrypt error: %v", name, err)
 	}
 
+	t.Logf("%v: ciphertext: %s", name, ciphertext)
+
 	decrypted, err := cipher.Decrypt(ciphertext)
 	if err != nil {
 		t.Fatalf("%v: Decrypt error: %v", name, err)
 	}
+
+	t.Logf("%v: decrypted: %s", name, decrypted)
 
 	if decrypted != plaintext {
 		t.Fatalf("%v: decrypted (%s) != plaintext (%s)", name, decrypted, plaintext)
