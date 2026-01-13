@@ -712,7 +712,7 @@ func TestCustomKeyDerivation(t *testing.T) {
 		manualProvider := &Provider{
 			StringCodec:   DefaultProvider.StringCodec,
 			SaltFunc:      DefaultProvider.SaltFunc,
-			KeyDerivation: kdf.NewScrypt(2048, 8, 1), // TODO: new default KDF for v2
+			KeyDerivation: kdf.NewArgon2id(1, 16*1024, 1), // i.e. the kdf.CheapArgon2id()
 		}
 
 		// Keys should be identical
@@ -720,7 +720,7 @@ func TestCustomKeyDerivation(t *testing.T) {
 		key2 := manualProvider.NewAesKey(passphrase)
 
 		if !bytesEqual(key1.Bytes(), key2.Bytes()) {
-			t.Error("DefaultProvider should use scrypt with N=2048, r=8, p=1 for backward compatibility")
+			t.Error("DefaultProvider should use Argon2id with Time: 1, Memory: 16*1024, Threads: 1 for backward compatibility to v2.x")
 		}
 	})
 

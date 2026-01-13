@@ -36,7 +36,7 @@ type Provider struct {
 var DefaultProvider = &Provider{
 	StringCodec:   HexCodec,
 	SaltFunc:      func() string { return "5f11a4921aea524b9d3cb7f2514b0724" },
-	KeyDerivation: kdf.NewScrypt(2048, 8, 1), // Default scrypt params for backward compatibility
+	KeyDerivation: kdf.CheapArgon2id(), // Time: 1, Memory: 16*1024, Threads: 1
 }
 
 // ============ Block Cipher Methods ============

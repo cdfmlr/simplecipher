@@ -9,9 +9,9 @@ import (
 // key generation and cipher algorithms with default options (salt, mainly)
 // always produce the same output for the same input across minor versions.
 
-// The current hardcoded expected values are for version v0.* and v1.*.
-// It is expected the next major version (v2.0.0) will NOT be compatible
-// with these values.
+// The current hardcoded expected values are for version v2.*.*
+// It is expected the previous (v0.*.*, v1.*.*) or next (v3.*.*) major versions
+// will NOT be compatible with these values.
 
 // Results across major versions may differ if the default key generation
 // method / default salt value changes.
@@ -41,7 +41,7 @@ func TestKeyGen_Compatibility(t *testing.T) {
 		}
 
 		// we hardcode the expected output here to ensure compatibility
-		expectedHexKey := "eba123f25994cffa65e966cfb7dac9a392550c8d42bc293b0be3fd29bb38dfb1"
+		expectedHexKey := "2eea684f8fff4bdefaad200437773bf748df25ba4da7894a15fbf33c983dd943"
 		generatedKey := g.Bytes()
 		generatedHexKey := hex.EncodeToString(generatedKey)
 
@@ -53,7 +53,7 @@ func TestKeyGen_Compatibility(t *testing.T) {
 		// test that default options produce expected output
 		g := NewAesKey("test-passphrase")
 
-		expectedHexKey := "cab609583b99f229cc5ad0a0091e87c1d1397a97261de4e187f5db6a445ef3fd"
+		expectedHexKey := "2b5da4f98c55132932d00e52d3a04e3e62bba7bf83eec7511bdb987ca7118f92"
 		generatedKey := g.Bytes()
 		generatedHexKey := hex.EncodeToString(generatedKey)
 
@@ -65,7 +65,7 @@ func TestKeyGen_Compatibility(t *testing.T) {
 		// test that default options produce expected output
 		g := NewNonce("test-passphrase")
 
-		expectedHexKey := "cab609583b99f229cc5ad0a0"
+		expectedHexKey := "12856a1b0344d333ea8ed26e"
 		generatedKey := g.Bytes()
 		generatedHexKey := hex.EncodeToString(generatedKey)
 
@@ -77,7 +77,7 @@ func TestKeyGen_Compatibility(t *testing.T) {
 		// notice that: NewIv is deterministic while NewRandomIv is not
 		got := NewIv("test-passphrase-for-iv").Bytes()
 
-		expectedHexKey := "8b2ea2c4c19b8f58cbef3452c30a857b"
+		expectedHexKey := "25089e9197eb9d44d9c3d05d901ec6cf"
 		generatedKey := got
 		generatedHexKey := hex.EncodeToString(generatedKey)
 
@@ -96,7 +96,7 @@ func TestSimpleCTR_Compatibility(t *testing.T) {
 	cipher.(*streamToBlock).Stream.(*steam).iv = fixedIv
 
 	t.Run("keyDerivation", func(t *testing.T) {
-		expectedKey := "862e69236dbd3a28de8a8bc30c98bca47d6906907355771ec0bda705e65a44f5"
+		expectedKey := "c312ee53fe8fa080fc4700c30d04e0c4845677dd0dc7895cb0239cbead78477c"
 
 		gotKey := cipher.(*streamToBlock).Stream.(*steam).key.Bytes()
 		gotHexKey := hex.EncodeToString(gotKey)
@@ -107,7 +107,7 @@ func TestSimpleCTR_Compatibility(t *testing.T) {
 	})
 
 	plaintext := "The quick brown fox jumps over the lazy dog."
-	expectedCiphertext := "102ff679517c6ca85312d3b38fa1de6faef72e66a44449290486355d6f92b37d34eeb294f654fa715c70a19cf0180741026f4b3e0e9116888c47c4d8"
+	expectedCiphertext := "c7c2537644adcd9ceb2bdd66fd1f2361c2a56a740c0cfef73f234f799555ce95ca87832de5eafd925e6b6313f03f75d23a38af9b6db3f37f233d0a33"
 
 	t.Run("encryption", func(t *testing.T) {
 		ciphertext, err := cipher.Encrypt(plaintext)
@@ -136,7 +136,7 @@ func TestSimpleGCM_Compatibility(t *testing.T) {
 	cipher := SimpleGCM("hello-gcm-passphrase", "hello-gcm-nonce")
 
 	t.Run("keyDerivation", func(t *testing.T) {
-		expectedKey := "6dc9e1f2255e2f8a6bf6ff05b6320e1d8cf4597ecb5f920fac74f5df2a570570"
+		expectedKey := "b4dc3178e0dac469939124c6c64edd7064e903aa7ab9395c843c9e17781d9db2"
 
 		gotKey := cipher.(*gcm).key.Bytes()
 		gotHexKey := hex.EncodeToString(gotKey)
@@ -145,7 +145,7 @@ func TestSimpleGCM_Compatibility(t *testing.T) {
 			t.Errorf("Key derivation mismatch: expected %s, got %s", expectedKey, gotHexKey)
 		}
 
-		expectedNonce := "832986af2346ff41fcce1b0a"
+		expectedNonce := "c53f57bccb3c917f1d8f8e8b"
 
 		gotNonce := cipher.(*gcm).nonce.Bytes()
 		gotHexNonce := hex.EncodeToString(gotNonce)
@@ -156,7 +156,7 @@ func TestSimpleGCM_Compatibility(t *testing.T) {
 	})
 
 	plaintext := "The quick brown fox jumps over the lazy dog."
-	expectedCiphertext := "1561086e16ade8addfdd7332c69be199a4afd8a817ca40896cf03bfda9a03b7e0a49c233eed5f31cff7604366195555cd7b671067bca78ba70c43bae"
+	expectedCiphertext := "6c312384cfa85579125e5baafd9885f738307d6567cc3973254f0045b8a4d04bed02adab542277ab6ce92dac96fb1dbe4d4880530629f6d426b4a22a"
 
 	t.Run("encryption", func(t *testing.T) {
 		ciphertext, err := cipher.Encrypt(plaintext)
