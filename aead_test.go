@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"testing"
 	"time"
-
-	"github.com/cdfmlr/simplecipher/v2/codec"
 )
 
 func FuzzNewGCM(f *testing.F) {
@@ -57,10 +55,9 @@ func FuzzSimpleGCM(f *testing.F) {
 }
 
 func ExampleSimpleGCM() {
-	sc := Provider{
-		StringCodec: codec.Hex,
-		SaltFunc:    func() string { return "NaCl" },
-	}
+	sc := NewProvider(
+		WithSaltFunc(func() string { return "NaCl" }),
+	)
 
 	key := "my-secret-key"
 	aad := time.Now().Format(time.DateOnly)

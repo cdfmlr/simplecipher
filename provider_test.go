@@ -2,7 +2,6 @@ package simplecipher
 
 import (
 	"fmt"
-	"io"
 	"reflect"
 	"testing"
 
@@ -391,208 +390,6 @@ func TestProviderIntegration(t *testing.T) {
 			t.Error("Decoded ciphertext should not be empty")
 		}
 	})
-}
-
-// Example_defaultProvider demonstrates using the DefaultProvider for backward compatibility.
-func Example_defaultProvider() {
-	// This is the traditional way of using simplecipher
-	// It uses the DefaultProvider internally
-	cipher := SimpleCTR("my-password")
-	plaintext := "Hello, World!"
-
-	encrypted, err := cipher.Encrypt(plaintext)
-	if err != nil {
-		panic(err)
-	}
-
-	decrypted, err := cipher.Decrypt(encrypted)
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println(decrypted)
-	// Output: Hello, World!
-}
-
-// Example_customProvider demonstrates creating and using a custom Provider
-// with different configuration (Base64 encoding instead of Hex).
-func Example_customProvider() {
-	// Create a custom provider with Base64 encoding
-	provider := &Provider{
-		StringCodec: codec.Base64Std,
-		SaltFunc: func() string {
-			return "my-custom-salt"
-		},
-	}
-
-	// Use the provider to create ciphers
-	cipher := provider.SimpleCTR("my-password")
-	plaintext := "Secret Message"
-
-	encrypted, err := cipher.Encrypt(plaintext)
-	if err != nil {
-		panic(err)
-	}
-
-	// The encrypted text will be in Base64 format
-	// fmt.Printf("Encrypted (Base64): %s\n", encrypted)
-
-	decrypted, err := cipher.Decrypt(encrypted)
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println(decrypted)
-	// Output: Secret Message
-}
-
-// Example_multipleProviders demonstrates using multiple independent Providers
-// with different configurations simultaneously without interference.
-func Example_multipleProviders() {
-	// Provider 1: Hex encoding with salt "alpha"
-	providerAlpha := &Provider{
-		StringCodec: codec.Hex,
-		SaltFunc:    func() string { return "alpha-salt" },
-	}
-
-	// Provider 2: Base64 encoding with salt "beta"
-	providerBeta := &Provider{
-		StringCodec: codec.Base64Std,
-		SaltFunc:    func() string { return "beta-salt" },
-	}
-
-	password := "shared-password"
-	plaintext := "data"
-
-	// Both providers work independently
-	cipher1 := providerAlpha.SimpleCTR(password)
-	cipher2 := providerBeta.SimpleCTR(password)
-
-	encrypted1, _ := cipher1.Encrypt(plaintext)
-	encrypted2, _ := cipher2.Encrypt(plaintext)
-
-	// fmt.Printf("Provider Alpha (Hex): %s\n", encrypted1)
-	// fmt.Printf("Provider Beta (Base64): %s\n", encrypted2)
-
-	// Each provider can decrypt its own ciphertext
-	decrypted1, _ := cipher1.Decrypt(encrypted1)
-	decrypted2, _ := cipher2.Decrypt(encrypted2)
-
-	fmt.Println(decrypted1)
-	fmt.Println(decrypted2)
-	// data
-	// data
-}
-
-// Example_customKeyDerivation demonstrates using a Provider to create keys
-// with custom salt and length options.
-func Example_customKeyDerivation() {
-	provider := &Provider{
-		StringCodec: codec.Hex,
-		SaltFunc: func() string {
-			return "my-fixed-salt"
-		},
-	}
-
-	// Create AES-256 key (default)
-	key256 := provider.NewAesKey("my-passphrase")
-	fmt.Printf("AES-256 key length: %d bytes\n", len(key256.Bytes()))
-
-	// Create AES-128 key with custom salt
-	key128 := provider.NewAesKey(
-		"my-passphrase",
-		WithLen(Aes128),
-		WithSalt("custom-salt"),
-	)
-	fmt.Printf("AES-128 key length: %d bytes\n", len(key128.Bytes()))
-
-	// Output: AES-256 key length: 32 bytes
-	// AES-128 key length: 16 bytes
-}
-
-// Example_streamEncryption demonstrates using a Provider for stream-based
-// encryption suitable for large files or streaming data.
-func Example_streamEncryption() {
-	provider := &Provider{
-		StringCodec: codec.Hex,
-		SaltFunc:    func() string { return "stream-salt" },
-	}
-
-	// Create a stream cipher
-	stream := provider.SimpleCTRStream("password")
-
-	// Simulate reading from a source and writing to a destination
-	source := io.NopCloser(io.Reader(nil)) // In real code, this would be a file
-	dest := io.Discard                     // In real code, this would be a file
-
-	// Encrypt streaming data (error handling omitted for brevity)
-	_ = stream.EncryptStream(source, dest)
-
-	// Later, decrypt the stream
-	encryptedSource := io.NopCloser(io.Reader(nil))
-	decryptedDest := io.Discard
-
-	_ = stream.DecryptStream(encryptedSource, decryptedDest)
-}
-
-// Example_aeadEncryption demonstrates using a Provider for AEAD (authenticated
-// encryption with associated data) using GCM mode.
-func Example_aeadEncryption() {
-	provider := &Provider{
-		StringCodec: codec.Hex,
-		SaltFunc:    func() string { return "aead-salt" },
-	}
-
-	// Create a GCM cipher with derived key and nonce
-	cipher := provider.SimpleGCM("key-passphrase", "Additional Authenticated Data")
-
-	plaintext := "Authenticated Message"
-	encrypted, err := cipher.Encrypt(plaintext)
-	if err != nil {
-		panic(err)
-	}
-
-	decrypted, err := cipher.Decrypt(encrypted)
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println(decrypted)
-	// Output: Authenticated Message
-}
-
-// Example_customKeyAndIV demonstrates manually creating ciphers with custom
-// key and IV values using a Provider.
-func Example_customKeyAndIV() {
-	provider := &Provider{
-		StringCodec: codec.Hex,
-		SaltFunc:    func() string { return "default-salt" },
-	}
-
-	// Create a custom AES-256 key
-	keyPassphrase := "secure-passphrase"
-	key := provider.NewAesKey(keyPassphrase, WithLen(Aes256))
-
-	// Create an IV
-	ivPassphrase := "initialization-vector"
-	iv := provider.NewIv(ivPassphrase)
-
-	// Use them to create a cipher
-	cipher := provider.NewCTR(key, iv)
-
-	plaintext := "Encrypted with custom key and IV"
-	encrypted, err := cipher.Encrypt(plaintext)
-	if err != nil {
-		panic(err)
-	}
-
-	decrypted, err := cipher.Decrypt(encrypted)
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println(decrypted)
-	// Output: Encrypted with custom key and IV
 }
 
 // TestProviderConfig verifies that Provider configuration (SaltFunc and StringCodec)
@@ -1277,25 +1074,42 @@ func TestCustomKeyDerivation(t *testing.T) {
 	})
 }
 
-// Example_customKDF demonstrates using a Provider with a custom KDF algorithm.
-func Example_customKDF() {
-	// Create a provider with a customized Argon2id KDF instead of the default one.
-	provider := &Provider{
-		StringCodec: codec.Hex,
-		SaltFunc:    func() string { return "my-salt" },
-		// use a preset profile: KeyDerivation: kdf.RecommendedArgon2id(),
-		// or customize parameters as needed:
-		KeyDerivation: kdf.NewArgon2id(1, 64*1024, 1),
-	}
+// bytesEqual is a helper function to check if two byte slices are equal.
+func bytesEqual(a, b []byte) bool {
+	// return bytes.Equal(a, b)
+	return string(a) == string(b)
+}
 
-	// Use the provider to create a cipher
-	cipher := provider.SimpleCTR("my-password")
-	plaintext := "Encrypted with Argon2id"
+func ExampleNewProvider() {
+	sc := NewProvider(
+		WithSaltFunc(func() string { return "example-salt" }),
+		WithStringCodec(codec.Base64Std),
+		WithKeyDerivation(kdf.NewScrypt(16*1024, 8, 1)),
+	)
+
+	cipher := sc.SimpleCTR("example-password")
+	plaintext := "Hello, Example!"
+
+	encrypted, _ := cipher.Encrypt(plaintext)
+	decrypted, _ := cipher.Decrypt(encrypted)
+
+	fmt.Println(decrypted)
+	// Output: Hello, Example!
+}
+
+// Example_defaultProvider demonstrates using the DefaultProvider.
+func ExampleDefaultProvider() {
+	// uses the DefaultProvider internally
+	cipher := SimpleCTR("my-password")
+	plaintext := "Hello, World!"
 
 	encrypted, err := cipher.Encrypt(plaintext)
 	if err != nil {
 		panic(err)
 	}
+
+	// or you can use DefaultProvider explicitly
+	cipher = DefaultProvider.SimpleCTR("my-password")
 
 	decrypted, err := cipher.Decrypt(encrypted)
 	if err != nil {
@@ -1303,13 +1117,7 @@ func Example_customKDF() {
 	}
 
 	fmt.Println(decrypted)
-	// Output: Encrypted with Argon2id
-}
-
-// bytesEqual is a helper function to check if two byte slices are equal.
-func bytesEqual(a, b []byte) bool {
-	// return bytes.Equal(a, b)
-	return string(a) == string(b)
+	// Output: Hello, World!
 }
 
 // // HOW CLAUDE CODE LIKE A PRO:

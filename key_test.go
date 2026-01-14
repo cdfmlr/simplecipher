@@ -5,7 +5,6 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/cdfmlr/simplecipher/v2/codec"
 	"github.com/cdfmlr/simplecipher/v2/kdf"
 )
 
@@ -402,17 +401,15 @@ func ExampleNewKey() {
 
 // derive a key from a passphrase, with custom provider settings.
 func ExampleProvider_NewKey() {
-	provider := Provider{
-		StringCodec:   codec.Hex,
-		SaltFunc:      func() string { return "NaCl" },
-		KeyDerivation: kdf.RecommendedArgon2id(),
-	}
+	sc := NewProvider(
+		WithKeyDerivation(kdf.RecommendedArgon2id()),
+	)
 
 	passphrase := "my-secret-key"
 	keyLen := Aes256 // 32
 	salt := "NaCl"
 
-	key := provider.NewKey(passphrase, keyLen, salt)
+	key := sc.NewKey(passphrase, keyLen, salt)
 
 	// use the key for encryption or any other purpose
 	_ = key

@@ -5,8 +5,6 @@ import (
 	"crypto/aes"
 	"fmt"
 	"testing"
-
-	"github.com/cdfmlr/simplecipher/v2/codec"
 )
 
 func testErrorStream(name string, t *testing.T, newStream func(p *Provider) Stream, plaintext string) {
@@ -173,10 +171,9 @@ func FuzzSimpleCTRStream(f *testing.F) {
 }
 
 func ExampleSimpleCTRStream() {
-	sc := Provider{
-		StringCodec: codec.Hex,
-		SaltFunc:    func() string { return "NaCl" },
-	}
+	sc := NewProvider(
+		WithSaltFunc(func() string { return "NaCl" }),
+	)
 
 	key := "my-secret-key"
 	plainText := "Hello, World!"
