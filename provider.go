@@ -1,13 +1,13 @@
 package simplecipher
 
-import (
-	"github.com/cdfmlr/simplecipher/v2/codec"
-	"github.com/cdfmlr/simplecipher/v2/kdf"
-)
-
-// config is an internal alias for Provider to make struct field names clearer.
-// Using "config" instead of "provider" better reflects its role as a configuration container.
-type config = Provider
+// TODO: consider splitting Provider into multiple smaller internal providers:
+//           keyProvider, blockProvider and streamProvider.
+//       Or I personally much more prefer to call these internal things
+//       "config"s instead of "provider"s, since they are literally configs.
+//       This can help reduce the size of the Provider struct
+//       and make it easier to manage different aspects of the configuration.
+//       BTW, I think keep a single Provider exported to users is still a good
+//       idea, for simplicity and ease of use.
 
 // Provider encapsulates the configuration for cipher operations.
 // It groups all cipher-related configuration and provides methods to create ciphers,
@@ -26,13 +26,9 @@ type Provider struct {
 	KeyDerivation KeyDerivation
 }
 
-// DefaultProvider is a ready-to-use Provider instance with default configuration.
-// It uses Hex for string encoding and delegates to DefaultSalt for the salt function.
-var DefaultProvider = &Provider{
-	StringCodec:   codec.Hex,
-	SaltFunc:      func() string { return "5f11a4921aea524b9d3cb7f2514b0724" },
-	KeyDerivation: kdf.CheapArgon2id(), // Time: 1, Memory: 16*1024, Threads: 1
-}
+// config is an internal alias for Provider to make struct field names clearer.
+// Using "config" instead of "provider" better reflects its role as a configuration container.
+type config = Provider
 
 // ============ Block Block Methods ============
 
