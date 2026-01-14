@@ -18,12 +18,12 @@ import (
 // Block implementations should recover from underlying panics
 // and return them as errors.
 //
-// Block encodes the ciphertext with [DefaultStringCodec] when Encrypting
-// and decodes the ciphertext from a [DefaultStringCodec] string when Decrypting.
+// Block encodes the ciphertext with [Provider.StringCodec] when Encrypting
+// and decodes the ciphertext from a [Provider.StringCodec] string when Decrypting.
 type Block interface {
-	// Encrypt the given plaintext and return the ciphertext as a [DefaultStringCodec] encoded string.
+	// Encrypt the given plaintext and return the ciphertext as a [Provider.StringCodec] encoded string.
 	Encrypt(plainText string) (cipherText string, err error)
-	// Decrypt the given ciphertext ([DefaultStringCodec] encoded) and return the plaintext.
+	// Decrypt the given ciphertext ([Provider.StringCodec] encoded) and return the plaintext.
 	Decrypt(cipherText string) (plainText string, err error)
 }
 
@@ -31,7 +31,7 @@ type Block interface {
 //
 // Notice that, unlike [Block], Stream does not encode the ciphertext.
 // The cipherText output of Encrypt and the cipherText input of Decrypt
-// are not encoded in any way (or in [Nop]), they are just raw bytes.
+// are not encoded in any way (or in [codec.Nop]), they are just raw bytes.
 type Stream interface {
 	// EncryptStream encrypts the given plaintext from the reader
 	// and write the ciphertext to the given writer without encoding.

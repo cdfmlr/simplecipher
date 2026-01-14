@@ -20,25 +20,6 @@ type StringCodec interface {
 	DecodeString(s string) ([]byte, error)
 }
 
-// DefaultStringCodec is the default [StringCodec] used by [Block] implementations.
-// It is set to [Hex] by default.
-//
-// You can change it to [Base64Std], [Base64URL], [Base32Std], or [Base32Hex]:
-//
-//	simplecipher.DefaultStringCodec = simplecipher.Base64Std
-//	ciphertext := simplecipher.SimpleCTR("strong-key").Encrypt("plaintext")
-//	fmt.Println(ciphertext) // "YmFzZTY0c2VjcmV0"
-//
-// If encoding and decoding are not needed, or you want to handle it yourself,
-// set it to [Nop]:
-//
-//	simplecipher.DefaultStringCodec = simplecipher.Nop
-//	ciphertext := simplecipher.SimpleCTR("strong-key").Encrypt("plaintext")
-//	rawCiphertextBytes := []byte(ciphertext) // rawCiphertextBytes is now the ciphertext bytes output by the algorithm without encoding.
-//
-// See also: [Hex], [Base64Std], [Base64URL], [Base32Std], [Base32Hex], [Nop]
-var DefaultStringCodec StringCodec = Hex
-
 type nopCodec struct{}
 
 func (nopCodec) EncodeToString(src []byte) string {

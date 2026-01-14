@@ -299,27 +299,6 @@ func TestBase32HexCodec(t *testing.T) {
 	})
 }
 
-func TestDefaultStringCodec(t *testing.T) {
-	if DefaultStringCodec == nil {
-		t.Error("DefaultStringCodec is nil")
-	}
-
-	// Test that default codec works for basic operations
-	src := []byte("test")
-	encoded := DefaultStringCodec.EncodeToString(src)
-	if encoded == "" {
-		t.Error("EncodeToString() returned empty string")
-	}
-
-	decoded, err := DefaultStringCodec.DecodeString(encoded)
-	if err != nil {
-		t.Errorf("DecodeString() error = %v, want nil", err)
-	}
-	if string(decoded) != string(src) {
-		t.Errorf("DecodeString() = %q, want %q", string(decoded), string(src))
-	}
-}
-
 func TestAllCodecsRoundTrip(t *testing.T) {
 	codecs := []struct {
 		name  string

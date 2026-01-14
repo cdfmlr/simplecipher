@@ -28,7 +28,7 @@ func TestDefaultConfigurations(t *testing.T) {
 		t.Errorf("Default salt mismatch: expected %s, got %s", expectedDefaultSalt, gotDefaultSalt)
 	}
 
-	gotDefaultCodec := codec.DefaultStringCodec
+	gotDefaultCodec := DefaultProvider.StringCodec
 	expectedCodec := codec.Hex
 	if gotDefaultCodec != expectedCodec {
 		t.Errorf("Default string codec mismatch: expected %T, got %T", expectedCodec, gotDefaultCodec)
