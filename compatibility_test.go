@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/cdfmlr/simplecipher/v2/codec"
 	"github.com/cdfmlr/simplecipher/v2/dontpanic"
 )
 
@@ -27,8 +28,8 @@ func TestDefaultConfigurations(t *testing.T) {
 		t.Errorf("Default salt mismatch: expected %s, got %s", expectedDefaultSalt, gotDefaultSalt)
 	}
 
-	gotDefaultCodec := DefaultStringCodec
-	expectedCodec := HexCodec
+	gotDefaultCodec := codec.DefaultStringCodec
+	expectedCodec := codec.Hex
 	if gotDefaultCodec != expectedCodec {
 		t.Errorf("Default string codec mismatch: expected %T, got %T", expectedCodec, gotDefaultCodec)
 	}

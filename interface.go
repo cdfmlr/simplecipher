@@ -8,6 +8,7 @@ import (
 	"errors"
 	"io"
 
+	"github.com/cdfmlr/simplecipher/v2/codec"
 	"github.com/cdfmlr/simplecipher/v2/dontpanic"
 	"github.com/cdfmlr/simplecipher/v2/kdf"
 )
@@ -30,7 +31,7 @@ type Block interface {
 //
 // Notice that, unlike [Block], Stream does not encode the ciphertext.
 // The cipherText output of Encrypt and the cipherText input of Decrypt
-// are not encoded in any way (or in [NopCodec]), they are just raw bytes.
+// are not encoded in any way (or in [Nop]), they are just raw bytes.
 type Stream interface {
 	// EncryptStream encrypts the given plaintext from the reader
 	// and write the ciphertext to the given writer without encoding.
@@ -43,6 +44,10 @@ type Stream interface {
 // KeyDerivation is a key derivation function (KDF) interface.
 // See [kdf.KeyDerivation] for details.
 type KeyDerivation = kdf.KeyDerivation
+
+// StringCodec is an interface that provides encoding and decoding functions
+// for ciphertexts. See [codec.StringCodec] for details.
+type StringCodec = codec.StringCodec
 
 // Errors
 var (

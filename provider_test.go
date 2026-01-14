@@ -5,6 +5,7 @@ import (
 	"io"
 	"testing"
 
+	"github.com/cdfmlr/simplecipher/v2/codec"
 	"github.com/cdfmlr/simplecipher/v2/kdf"
 )
 
@@ -12,7 +13,7 @@ import (
 // with Hex encoding and a fixed salt.
 func testProvider() *Provider {
 	return &Provider{
-		StringCodec:   HexCodec,
+		StringCodec:   codec.Hex,
 		SaltFunc:      func() string { return "testsalt" },
 		KeyDerivation: kdf.NewScrypt(2048, 8, 1), // Default KDF for tests
 	}
@@ -44,7 +45,7 @@ func Example_defaultProvider() {
 func Example_customProvider() {
 	// Create a custom provider with Base64 encoding
 	provider := &Provider{
-		StringCodec: Base64StdCodec,
+		StringCodec: codec.Base64Std,
 		SaltFunc: func() string {
 			return "my-custom-salt"
 		},
@@ -76,13 +77,13 @@ func Example_customProvider() {
 func Example_multipleProviders() {
 	// Provider 1: Hex encoding with salt "alpha"
 	providerAlpha := &Provider{
-		StringCodec: HexCodec,
+		StringCodec: codec.Hex,
 		SaltFunc:    func() string { return "alpha-salt" },
 	}
 
 	// Provider 2: Base64 encoding with salt "beta"
 	providerBeta := &Provider{
-		StringCodec: Base64StdCodec,
+		StringCodec: codec.Base64Std,
 		SaltFunc:    func() string { return "beta-salt" },
 	}
 
@@ -113,7 +114,7 @@ func Example_multipleProviders() {
 // with custom salt and length options.
 func Example_customKeyDerivation() {
 	provider := &Provider{
-		StringCodec: HexCodec,
+		StringCodec: codec.Hex,
 		SaltFunc: func() string {
 			return "my-fixed-salt"
 		},
@@ -139,7 +140,7 @@ func Example_customKeyDerivation() {
 // encryption suitable for large files or streaming data.
 func Example_streamEncryption() {
 	provider := &Provider{
-		StringCodec: HexCodec,
+		StringCodec: codec.Hex,
 		SaltFunc:    func() string { return "stream-salt" },
 	}
 
@@ -164,7 +165,7 @@ func Example_streamEncryption() {
 // encryption with associated data) using GCM mode.
 func Example_aeadEncryption() {
 	provider := &Provider{
-		StringCodec: HexCodec,
+		StringCodec: codec.Hex,
 		SaltFunc:    func() string { return "aead-salt" },
 	}
 
@@ -190,7 +191,7 @@ func Example_aeadEncryption() {
 // key and IV values using a Provider.
 func Example_customKeyAndIV() {
 	provider := &Provider{
-		StringCodec: HexCodec,
+		StringCodec: codec.Hex,
 		SaltFunc:    func() string { return "default-salt" },
 	}
 
@@ -231,12 +232,12 @@ func TestProviderConfig(t *testing.T) {
 	t.Run("SaltFunc affects key derivation", func(t *testing.T) {
 		// Create two providers with different salt functions
 		provider1 := &Provider{
-			StringCodec:   HexCodec,
+			StringCodec:   codec.Hex,
 			SaltFunc:      func() string { return "salt1" },
 			KeyDerivation: kdf.NewScrypt(2048, 8, 1),
 		}
 		provider2 := &Provider{
-			StringCodec:   HexCodec,
+			StringCodec:   codec.Hex,
 			SaltFunc:      func() string { return "salt2" },
 			KeyDerivation: kdf.NewScrypt(2048, 8, 1),
 		}
@@ -269,12 +270,12 @@ func TestProviderConfig(t *testing.T) {
 	t.Run("SaltFunc affects encryption output", func(t *testing.T) {
 		// Create two providers with different salt functions
 		provider1 := &Provider{
-			StringCodec:   HexCodec,
+			StringCodec:   codec.Hex,
 			SaltFunc:      func() string { return "salt1" },
 			KeyDerivation: kdf.NewScrypt(2048, 8, 1),
 		}
 		provider2 := &Provider{
-			StringCodec:   HexCodec,
+			StringCodec:   codec.Hex,
 			SaltFunc:      func() string { return "salt2" },
 			KeyDerivation: kdf.NewScrypt(2048, 8, 1),
 		}
@@ -309,11 +310,11 @@ func TestProviderConfig(t *testing.T) {
 	t.Run("StringCodec affects encoding output format", func(t *testing.T) {
 		// Create two providers with different string codecs but same salt
 		providerHex := &Provider{
-			StringCodec: HexCodec,
+			StringCodec: codec.Hex,
 			SaltFunc:    func() string { return "same-salt" },
 		}
 		providerBase64 := &Provider{
-			StringCodec: Base64StdCodec,
+			StringCodec: codec.Base64Std,
 			SaltFunc:    func() string { return "same-salt" },
 		}
 
@@ -360,7 +361,7 @@ func TestProviderConfig(t *testing.T) {
 	t.Run("Provider configuration affects encryption and decryption consistency", func(t *testing.T) {
 		// Create a provider with specific configuration
 		provider := &Provider{
-			StringCodec: Base64StdCodec,
+			StringCodec: codec.Base64Std,
 			SaltFunc:    func() string { return "consistent-salt" },
 		}
 
@@ -391,12 +392,12 @@ func TestProviderConfig(t *testing.T) {
 	t.Run("Cross-provider decryption fails with different configurations", func(t *testing.T) {
 		// Create two providers with different salts
 		provider1 := &Provider{
-			StringCodec:   HexCodec,
+			StringCodec:   codec.Hex,
 			SaltFunc:      func() string { return "salt1" },
 			KeyDerivation: kdf.NewScrypt(2048, 8, 1),
 		}
 		provider2 := &Provider{
-			StringCodec:   HexCodec,
+			StringCodec:   codec.Hex,
 			SaltFunc:      func() string { return "salt2" },
 			KeyDerivation: kdf.NewScrypt(2048, 8, 1),
 		}
@@ -429,12 +430,12 @@ func TestProviderConfig(t *testing.T) {
 
 	t.Run("Provider affects IV derivation", func(t *testing.T) {
 		provider1 := &Provider{
-			StringCodec:   HexCodec,
+			StringCodec:   codec.Hex,
 			SaltFunc:      func() string { return "salt1" },
 			KeyDerivation: kdf.NewScrypt(2048, 8, 1),
 		}
 		provider2 := &Provider{
-			StringCodec:   HexCodec,
+			StringCodec:   codec.Hex,
 			SaltFunc:      func() string { return "salt2" },
 			KeyDerivation: kdf.NewScrypt(2048, 8, 1),
 		}
@@ -465,12 +466,12 @@ func TestProviderConfig(t *testing.T) {
 
 	t.Run("Provider affects Nonce derivation for GCM", func(t *testing.T) {
 		provider1 := &Provider{
-			StringCodec:   HexCodec,
+			StringCodec:   codec.Hex,
 			SaltFunc:      func() string { return "salt1" },
 			KeyDerivation: kdf.NewScrypt(2048, 8, 1),
 		}
 		provider2 := &Provider{
-			StringCodec:   HexCodec,
+			StringCodec:   codec.Hex,
 			SaltFunc:      func() string { return "salt2" },
 			KeyDerivation: kdf.NewScrypt(2048, 8, 1),
 		}
@@ -501,11 +502,11 @@ func TestProviderConfig(t *testing.T) {
 
 	t.Run("SimpleCTR uses provider configuration", func(t *testing.T) {
 		provider1 := &Provider{
-			StringCodec: HexCodec,
+			StringCodec: codec.Hex,
 			SaltFunc:    func() string { return "salt1" },
 		}
 		provider2 := &Provider{
-			StringCodec: Base64StdCodec,
+			StringCodec: codec.Base64Std,
 			SaltFunc:    func() string { return "salt2" },
 		}
 
@@ -554,17 +555,17 @@ func TestCustomKeyDerivation(t *testing.T) {
 	t.Run("Different KDF algorithms produce different keys", func(t *testing.T) {
 		// Create providers with different KDF algorithms
 		providerScrypt := &Provider{
-			StringCodec:   HexCodec,
+			StringCodec:   codec.Hex,
 			SaltFunc:      func() string { return salt },
 			KeyDerivation: kdf.NewScrypt(2048, 8, 1),
 		}
 		providerPbkdf2 := &Provider{
-			StringCodec:   HexCodec,
+			StringCodec:   codec.Hex,
 			SaltFunc:      func() string { return salt },
 			KeyDerivation: kdf.CheapPbkdf2(),
 		}
 		providerArgon2 := &Provider{
-			StringCodec:   HexCodec,
+			StringCodec:   codec.Hex,
 			SaltFunc:      func() string { return salt },
 			KeyDerivation: kdf.CheapArgon2id(),
 		}
@@ -599,17 +600,17 @@ func TestCustomKeyDerivation(t *testing.T) {
 	t.Run("Different KDF parameters produce different keys", func(t *testing.T) {
 		// Create providers with different scrypt parameters
 		providerWeak := &Provider{
-			StringCodec:   HexCodec,
+			StringCodec:   codec.Hex,
 			SaltFunc:      func() string { return salt },
 			KeyDerivation: kdf.NewScrypt(1024, 8, 1),
 		}
 		providerDefault := &Provider{
-			StringCodec:   HexCodec,
+			StringCodec:   codec.Hex,
 			SaltFunc:      func() string { return salt },
 			KeyDerivation: kdf.NewScrypt(2048, 8, 1),
 		}
 		providerStrong := &Provider{
-			StringCodec:   HexCodec,
+			StringCodec:   codec.Hex,
 			SaltFunc:      func() string { return salt },
 			KeyDerivation: kdf.NewScrypt(4096, 8, 1),
 		}
@@ -634,7 +635,7 @@ func TestCustomKeyDerivation(t *testing.T) {
 	t.Run("Custom KDF affects encryption/decryption", func(t *testing.T) {
 		// Create provider with custom KDF
 		provider := &Provider{
-			StringCodec:   HexCodec,
+			StringCodec:   codec.Hex,
 			SaltFunc:      func() string { return salt },
 			KeyDerivation: kdf.RecommendedArgon2id(),
 		}
@@ -663,12 +664,12 @@ func TestCustomKeyDerivation(t *testing.T) {
 	t.Run("Cross-provider decryption fails with different KDFs", func(t *testing.T) {
 		// Create two providers with different KDFs
 		providerScrypt := &Provider{
-			StringCodec:   HexCodec,
+			StringCodec:   codec.Hex,
 			SaltFunc:      func() string { return salt },
 			KeyDerivation: kdf.NewScrypt(2048, 8, 1),
 		}
 		providerPbkdf2 := &Provider{
-			StringCodec:   HexCodec,
+			StringCodec:   codec.Hex,
 			SaltFunc:      func() string { return salt },
 			KeyDerivation: kdf.CheapPbkdf2(),
 		}
@@ -726,7 +727,7 @@ func TestCustomKeyDerivation(t *testing.T) {
 
 	t.Run("Custom KDF works with all key derivation methods", func(t *testing.T) {
 		provider := &Provider{
-			StringCodec:   HexCodec,
+			StringCodec:   codec.Hex,
 			SaltFunc:      func() string { return salt },
 			KeyDerivation: kdf.RecommendedPbkdf2(),
 		}
@@ -758,7 +759,7 @@ func TestCustomKeyDerivation(t *testing.T) {
 
 	t.Run("Custom KDF with different key lengths", func(t *testing.T) {
 		provider := &Provider{
-			StringCodec:   HexCodec,
+			StringCodec:   codec.Hex,
 			SaltFunc:      func() string { return salt },
 			KeyDerivation: kdf.CheapScrypt(),
 		}
@@ -789,7 +790,7 @@ func TestCustomKeyDerivation(t *testing.T) {
 
 	t.Run("Nil KDF falls back to padding/truncation", func(t *testing.T) {
 		provider := &Provider{
-			StringCodec:   HexCodec,
+			StringCodec:   codec.Hex,
 			SaltFunc:      func() string { return salt },
 			KeyDerivation: nil, // Explicitly nil
 		}
@@ -810,7 +811,7 @@ func TestCustomKeyDerivation(t *testing.T) {
 
 	t.Run("Custom KDF with GCM cipher", func(t *testing.T) {
 		provider := &Provider{
-			StringCodec:   HexCodec,
+			StringCodec:   codec.Hex,
 			SaltFunc:      func() string { return salt },
 			KeyDerivation: kdf.CheapArgon2id(),
 		}
@@ -837,7 +838,7 @@ func TestCustomKeyDerivation(t *testing.T) {
 
 	t.Run("Custom KDF with CBC cipher", func(t *testing.T) {
 		provider := &Provider{
-			StringCodec:   HexCodec,
+			StringCodec:   codec.Hex,
 			SaltFunc:      func() string { return salt },
 			KeyDerivation: kdf.RecommendedScrypt(),
 		}
@@ -865,17 +866,17 @@ func TestCustomKeyDerivation(t *testing.T) {
 	t.Run("Multiple providers with different KDFs work independently", func(t *testing.T) {
 		providers := []*Provider{
 			{
-				StringCodec:   HexCodec,
+				StringCodec:   codec.Hex,
 				SaltFunc:      func() string { return "salt1" },
 				KeyDerivation: kdf.CheapScrypt(),
 			},
 			{
-				StringCodec:   HexCodec,
+				StringCodec:   codec.Hex,
 				SaltFunc:      func() string { return "salt2" },
 				KeyDerivation: kdf.CheapPbkdf2(),
 			},
 			{
-				StringCodec:   HexCodec,
+				StringCodec:   codec.Hex,
 				SaltFunc:      func() string { return "salt3" },
 				KeyDerivation: kdf.CheapArgon2id(),
 			},
@@ -906,7 +907,7 @@ func TestCustomKeyDerivation(t *testing.T) {
 func Example_customKDF() {
 	// Create a provider with a customized Argon2id KDF instead of the default one.
 	provider := &Provider{
-		StringCodec: HexCodec,
+		StringCodec: codec.Hex,
 		SaltFunc:    func() string { return "my-salt" },
 		// use a preset profile: KeyDerivation: kdf.RecommendedArgon2id(),
 		// or customize parameters as needed:

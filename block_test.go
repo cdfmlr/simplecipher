@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"os/exec"
 	"testing"
+
+	"github.com/cdfmlr/simplecipher/v2/codec"
 )
 
 // testCipher tests the given cipher implementation.
@@ -202,7 +204,7 @@ func FuzzSimpleStreamAsBlock(f *testing.F) {
 
 func ExampleSimpleCTR() {
 	sc := &Provider{
-		StringCodec: HexCodec,
+		StringCodec: codec.Hex,
 		SaltFunc:    func() string { return "NaCl" },
 	}
 

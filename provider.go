@@ -7,6 +7,7 @@ import (
 	mathrand "math/rand"
 	"time"
 
+	"github.com/cdfmlr/simplecipher/v2/codec"
 	"github.com/cdfmlr/simplecipher/v2/kdf"
 )
 
@@ -19,7 +20,7 @@ type config = Provider
 // keys, and other cryptographic primitives.
 type Provider struct {
 	// StringCodec is the codec used to encode/decode ciphertext strings.
-	// Defaults to HexCodec.
+	// Defaults to Hex.
 	StringCodec StringCodec
 
 	// SaltFunc is a function that returns the salt used for key derivation.
@@ -32,9 +33,9 @@ type Provider struct {
 }
 
 // DefaultProvider is a ready-to-use Provider instance with default configuration.
-// It uses HexCodec for string encoding and delegates to DefaultSalt for the salt function.
+// It uses Hex for string encoding and delegates to DefaultSalt for the salt function.
 var DefaultProvider = &Provider{
-	StringCodec:   HexCodec,
+	StringCodec:   codec.Hex,
 	SaltFunc:      func() string { return "5f11a4921aea524b9d3cb7f2514b0724" },
 	KeyDerivation: kdf.CheapArgon2id(), // Time: 1, Memory: 16*1024, Threads: 1
 }

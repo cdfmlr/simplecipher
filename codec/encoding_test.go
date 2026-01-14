@@ -1,15 +1,15 @@
-package simplecipher
+package codec
 
 import "testing"
 
 func FuzzStringCodecs(f *testing.F) {
 	codecs := map[string]StringCodec{
-		"NopCodec":       NopCodec,
-		"HexCodec":       HexCodec,
-		"Base64StdCodec": Base64StdCodec,
-		"Base64URLCodec": Base64URLCodec,
-		"Base32StdCodec": Base32StdCodec,
-		"Base32HexCodec": Base32HexCodec,
+		"Nop":       Nop,
+		"Hex":       Hex,
+		"Base64Std": Base64Std,
+		"Base64URL": Base64URL,
+		"Base32Std": Base32Std,
+		"Base32Hex": Base32Hex,
 	}
 
 	// src: bytes
