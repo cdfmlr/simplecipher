@@ -10,20 +10,78 @@ package simplecipher
 //       idea, for simplicity and ease of use.
 
 // Provider encapsulates the configuration for cipher operations.
-// It groups all cipher-related configuration and provides methods to create ciphers,
-// keys, and other cryptographic primitives.
+// It groups all cipher-related configuration and provides methods to create
+// ciphers, keys, and other cryptographic primitives.
+//
+// It is highly recommended to create a Provider instance by NewProvider() with
+// custom ProviderOption.
+//
+// Be careful when constructing a literal Provider struct. The Ensure() method
+// is recommended to be called before using such instances, to avoid potential
+// unexpected behaviors.
 type Provider struct {
 	// StringCodec is the codec used to encode/decode ciphertext strings.
 	// Defaults to Hex.
 	StringCodec StringCodec
 
 	// SaltFunc is a function that returns the salt used for key derivation.
-	// Defaults to a fixed random string for backward compatibility.
-	SaltFunc func() string
+	// Defaults to a fixed random string.
+	SaltFunc SaltFunc
 
 	// KeyDerivation is the key derivation function used to derive keys from passphrases.
-	// Defaults to scrypt with N=2048, r=8, p=1 for backward compatibility.
+	// Defaults to a cheap Argon2id KDF (Time: 1, Memory: 16*1024, Threads: 1).
 	KeyDerivation KeyDerivation
+}
+
+// NewProvider creates a new Provider with the given options.
+// Available options include setting the StringCodec, SaltFunc, and KeyDerivation.
+// Any fields not set or nil will be filled with default values (see [DefaultProvider]).
+func NewProvider(options ...ProviderOption) *Provider {
+	p := &Provider{}
+	for _, option := range options {
+		option(p)
+	}
+	p.Ensure()
+	return p
+}
+
+type ProviderOption func(*Provider)
+
+// WithStringCodec sets the StringCodec for the Provider.
+func WithStringCodec(codec StringCodec) ProviderOption {
+	return func(p *Provider) {
+		p.StringCodec = codec
+	}
+}
+
+// WithSaltFunc sets the SaltFunc for the Provider.
+func WithSaltFunc(saltFunc func() string) ProviderOption {
+	return func(p *Provider) {
+		p.SaltFunc = saltFunc
+	}
+}
+
+// WithKeyDerivation sets the KeyDerivation function for the Provider.
+func WithKeyDerivation(kdf KeyDerivation) ProviderOption {
+	return func(p *Provider) {
+		p.KeyDerivation = kdf
+	}
+}
+
+// Ensure fills in any unexpected nil fields with default values.
+// This should (only) be called during Provider initialization.
+func (p *Provider) Ensure() {
+	defaultConfig := defaultProvider()
+
+	if p.StringCodec == nil {
+		p.StringCodec = defaultConfig.StringCodec
+	}
+	if p.SaltFunc == nil {
+		p.SaltFunc = defaultConfig.SaltFunc
+	}
+	if p.KeyDerivation == nil {
+		p.KeyDerivation = defaultConfig.KeyDerivation
+	}
 }
 
 // config is an internal alias for Provider to make struct field names clearer.

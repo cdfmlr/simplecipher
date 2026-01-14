@@ -49,6 +49,18 @@ type KeyDerivation = kdf.KeyDerivation
 // for ciphertexts. See [codec.StringCodec] for details.
 type StringCodec = codec.StringCodec
 
+// SaltFunc is a function type that returns a salt string.
+//
+// A SaltFunc should be deterministic, i.e. it MUST return the same salt
+// string whenever it is called.
+// (Otherwise, decryption will fail,
+// unless you design the func/process very trickily.)
+//
+// Typically, a SaltFunc is a simple wrapper around a constant string:
+//
+//	func() string { return "my-fixed-salt" }
+type SaltFunc = func() string
+
 // Errors
 var (
 	ErrPlaintextBlockSize  = errors.New("plaintext is not a multiple of the block size")

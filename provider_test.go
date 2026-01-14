@@ -3,6 +3,7 @@ package simplecipher
 import (
 	"fmt"
 	"io"
+	"reflect"
 	"testing"
 
 	"github.com/cdfmlr/simplecipher/v2/codec"
@@ -17,6 +18,379 @@ func testProvider() *Provider {
 		SaltFunc:      func() string { return "testsalt" },
 		KeyDerivation: kdf.NewScrypt(2048, 8, 1), // Default KDF for tests
 	}
+}
+
+// TestNewProvider tests the NewProvider function with various options
+func TestNewProvider(t *testing.T) {
+	t.Run("noOptions", func(t *testing.T) {
+		p := NewProvider()
+
+		if p == nil {
+			t.Fatal("NewProvider returned nil")
+		}
+
+		// Check that all fields are set (not nil)
+		if p.StringCodec == nil {
+			t.Error("StringCodec should not be nil")
+		}
+		if p.SaltFunc == nil {
+			t.Error("SaltFunc should not be nil")
+		}
+		if p.KeyDerivation == nil {
+			t.Error("KeyDerivation should not be nil")
+		}
+
+		// Verify defaults match DefaultProvider
+		defaultP := defaultProvider()
+		if p.SaltFunc() != defaultP.SaltFunc() {
+			t.Errorf("SaltFunc mismatch: got %q, want %q", p.SaltFunc(), defaultP.SaltFunc())
+		}
+		if !reflect.DeepEqual(p.StringCodec, defaultP.StringCodec) {
+			t.Errorf("StringCodec type mismatch with default: got %#v, want %#v", p.StringCodec, defaultP.StringCodec)
+		}
+		if !reflect.DeepEqual(p.KeyDerivation, defaultP.KeyDerivation) {
+			t.Errorf("KeyDerivation mismatch with default: got %#v, want %#v", p.KeyDerivation, defaultP.KeyDerivation)
+		}
+	})
+
+	t.Run("customStringCodec", func(t *testing.T) {
+		customCodec := codec.Base64Std
+		p := NewProvider(WithStringCodec(customCodec))
+
+		if p.StringCodec != customCodec {
+			t.Errorf("StringCodec not set correctly")
+		}
+
+		// Other fields should use defaults
+		defaultP := defaultProvider()
+		if p.SaltFunc() != defaultP.SaltFunc() {
+			t.Errorf("SaltFunc mismatch: got %q, want %q", p.SaltFunc(), defaultP.SaltFunc())
+		}
+		if !reflect.DeepEqual(p.KeyDerivation, defaultP.KeyDerivation) {
+			t.Errorf("KeyDerivation mismatch with default: got %#v, want %#v", p.KeyDerivation, defaultP.KeyDerivation)
+		}
+	})
+
+	t.Run("customSaltFunc", func(t *testing.T) {
+		customSalt := "my-custom-salt-12345"
+		customSaltFunc := func() string { return customSalt }
+
+		p := NewProvider(WithSaltFunc(customSaltFunc))
+
+		if p.SaltFunc == nil {
+			t.Fatal("SaltFunc should not be nil")
+		}
+
+		if p.SaltFunc() != customSalt {
+			t.Errorf("SaltFunc returned %q, want %q", p.SaltFunc(), customSalt)
+		}
+
+		// Other fields should use defaults
+		defaultP := defaultProvider()
+		if !reflect.DeepEqual(p.StringCodec, defaultP.StringCodec) {
+			t.Errorf("StringCodec type mismatch with default: got %#v, want %#v", p.StringCodec, defaultP.StringCodec)
+		}
+		if !reflect.DeepEqual(p.KeyDerivation, defaultP.KeyDerivation) {
+			t.Errorf("KeyDerivation mismatch with default: got %#v, want %#v", p.KeyDerivation, defaultP.KeyDerivation)
+		}
+	})
+
+	t.Run("customKeyDerivation", func(t *testing.T) {
+		customKDF := kdf.NewScrypt(4096, 16, 2)
+
+		p := NewProvider(WithKeyDerivation(customKDF))
+
+		if p.KeyDerivation != customKDF {
+			t.Error("KeyDerivation not set correctly")
+		}
+
+		// Other fields should use defaults
+		defaultP := defaultProvider()
+		if p.SaltFunc() != defaultP.SaltFunc() {
+			t.Errorf("SaltFunc mismatch: got %q, want %q", p.SaltFunc(), defaultP.SaltFunc())
+		}
+		if !reflect.DeepEqual(p.StringCodec, defaultP.StringCodec) {
+			t.Errorf("StringCodec type mismatch with default: got %#v, want %#v", p.StringCodec, defaultP.StringCodec)
+		}
+	})
+
+	t.Run("allOptions", func(t *testing.T) {
+		customCodec := codec.Base64URL
+		customSalt := "multi-option-salt"
+		customSaltFunc := func() string { return customSalt }
+		customKDF := kdf.NewPbkdf2(10000, nil)
+
+		p := NewProvider(
+			WithStringCodec(customCodec),
+			WithSaltFunc(customSaltFunc),
+			WithKeyDerivation(customKDF),
+		)
+
+		// All custom values should be set
+		if p.StringCodec != customCodec {
+			t.Error("StringCodec not set correctly")
+		}
+		if p.SaltFunc() != customSalt {
+			t.Errorf("SaltFunc returned %q, want %q", p.SaltFunc(), customSalt)
+		}
+		if p.KeyDerivation != customKDF {
+			t.Error("KeyDerivation not set correctly")
+		}
+	})
+
+	t.Run("options override each other in order", func(t *testing.T) {
+		salt1 := "salt-1"
+		salt2 := "salt-2"
+
+		p := NewProvider(
+			WithSaltFunc(func() string { return salt1 }),
+			WithSaltFunc(func() string { return salt2 }), // This should win
+		)
+
+		if p.SaltFunc() != salt2 {
+			t.Errorf("SaltFunc returned %q, want %q (last option should win)", p.SaltFunc(), salt2)
+		}
+	})
+}
+
+// TestProviderOption tests individual provider option functions
+func TestProviderOption(t *testing.T) {
+	t.Run("WithStringCodec sets codec", func(t *testing.T) {
+		p := &Provider{}
+		codecInstance := codec.Base64Std
+
+		opt := WithStringCodec(codecInstance)
+		opt(p)
+
+		if p.StringCodec != codecInstance {
+			t.Error("WithStringCodec did not set StringCodec")
+		}
+	})
+
+	t.Run("WithSaltFunc sets salt function", func(t *testing.T) {
+		p := &Provider{}
+		expectedSalt := "test-salt"
+		saltFunc := func() string { return expectedSalt }
+
+		opt := WithSaltFunc(saltFunc)
+		opt(p)
+
+		if p.SaltFunc == nil {
+			t.Fatal("WithSaltFunc did not set SaltFunc")
+		}
+		if p.SaltFunc() != expectedSalt {
+			t.Errorf("SaltFunc returned %q, want %q", p.SaltFunc(), expectedSalt)
+		}
+	})
+
+	t.Run("WithKeyDerivation sets KDF", func(t *testing.T) {
+		p := &Provider{}
+		kdfInstance := kdf.NewScrypt(8192, 16, 4)
+
+		opt := WithKeyDerivation(kdfInstance)
+		opt(p)
+
+		if p.KeyDerivation != kdfInstance {
+			t.Error("WithKeyDerivation did not set KeyDerivation")
+		}
+	})
+
+	t.Run("Options can be nil-safe", func(t *testing.T) {
+		// Options should not panic when given nil values
+		p := &Provider{}
+
+		WithStringCodec(nil)(p)
+		WithSaltFunc(nil)(p)
+		WithKeyDerivation(nil)(p)
+
+		// Provider fields should be nil (options just set what they're given)
+		if p.StringCodec != nil {
+			t.Error("StringCodec should be nil")
+		}
+		if p.SaltFunc != nil {
+			t.Error("SaltFunc should be nil")
+		}
+		if p.KeyDerivation != nil {
+			t.Error("KeyDerivation should be nil")
+		}
+	})
+}
+
+// TestProviderEnsure tests the Ensure method
+func TestProviderEnsure(t *testing.T) {
+	t.Run("Ensure fills nil fields with defaults", func(t *testing.T) {
+		p := &Provider{
+			// All fields nil
+		}
+
+		p.Ensure()
+
+		// All fields should now be non-nil
+		if p.StringCodec == nil {
+			t.Error("StringCodec should be set by Ensure")
+		}
+		if p.SaltFunc == nil {
+			t.Error("SaltFunc should be set by Ensure")
+		}
+		if p.KeyDerivation == nil {
+			t.Error("KeyDerivation should be set by Ensure")
+		}
+	})
+
+	t.Run("Ensure preserves non-nil fields", func(t *testing.T) {
+		customCodec := codec.Base64URL
+		customSalt := "preserve-me"
+		customSaltFunc := func() string { return customSalt }
+		customKDF := kdf.NewScrypt(1024, 4, 1)
+
+		p := &Provider{
+			StringCodec:   customCodec,
+			SaltFunc:      customSaltFunc,
+			KeyDerivation: customKDF,
+		}
+
+		p.Ensure()
+
+		// All custom values should be preserved
+		if p.StringCodec != customCodec {
+			t.Error("Ensure modified StringCodec")
+		}
+		if p.SaltFunc() != customSalt {
+			t.Error("Ensure modified SaltFunc")
+		}
+		if p.KeyDerivation != customKDF {
+			t.Error("Ensure modified KeyDerivation")
+		}
+	})
+
+	t.Run("Ensure fills only nil fields", func(t *testing.T) {
+		customCodec := codec.Base64Std
+
+		p := &Provider{
+			StringCodec: customCodec,
+			// SaltFunc and KeyDerivation are nil
+		}
+
+		p.Ensure()
+
+		// StringCodec should be preserved
+		if p.StringCodec != customCodec {
+			t.Error("Ensure modified StringCodec")
+		}
+
+		// Nil fields should be filled
+		if p.SaltFunc == nil {
+			t.Error("SaltFunc should be set by Ensure")
+		}
+		if p.KeyDerivation == nil {
+			t.Error("KeyDerivation should be set by Ensure")
+		}
+	})
+
+	t.Run("Ensure can be called multiple times safely", func(t *testing.T) {
+		p := &Provider{}
+
+		p.Ensure()
+		salt1 := p.SaltFunc()
+
+		p.Ensure()
+		salt2 := p.SaltFunc()
+
+		// Second Ensure shouldn't change values
+		if salt1 != salt2 {
+			t.Error("Ensure modified fields on second call")
+		}
+	})
+
+	t.Run("Ensure uses same defaults as NewProvider", func(t *testing.T) {
+		p1 := &Provider{}
+		p1.Ensure()
+
+		p2 := NewProvider()
+
+		// Both should have same default salt
+		if p1.SaltFunc() != p2.SaltFunc() {
+			t.Errorf("Ensure and NewProvider use different default salts: %q vs %q",
+				p1.SaltFunc(), p2.SaltFunc())
+		}
+	})
+}
+
+// TestProviderIntegration tests that NewProvider with options works correctly
+// in real encryption/decryption scenarios
+func TestProviderIntegration(t *testing.T) {
+	t.Run("Provider created with NewProvider can encrypt/decrypt", func(t *testing.T) {
+		p := NewProvider(
+			WithStringCodec(codec.Base64Std),
+			WithSaltFunc(func() string { return "integration-test-salt" }),
+			WithKeyDerivation(kdf.NewScrypt(2048, 8, 1)),
+		)
+
+		cipher := p.SimpleCBC("test-password")
+		plaintext := "Hello, Integration Test!"
+
+		encrypted, err := cipher.Encrypt(plaintext)
+		if err != nil {
+			t.Fatalf("Encryption failed: %v", err)
+		}
+
+		decrypted, err := cipher.Decrypt(encrypted)
+		if err != nil {
+			t.Fatalf("Decryption failed: %v", err)
+		}
+
+		if decrypted != plaintext {
+			t.Errorf("Decrypted text doesn't match: got %q, want %q", decrypted, plaintext)
+		}
+	})
+
+	t.Run("Different providers with different salts produce different ciphertexts", func(t *testing.T) {
+		p1 := NewProvider(WithSaltFunc(func() string { return "salt-A" }))
+		p2 := NewProvider(WithSaltFunc(func() string { return "salt-B" }))
+
+		password := "same-password"
+		plaintext := "same-plaintext"
+
+		// Both encrypt the same plaintext with same password
+		cipher1 := p1.SimpleCBC(password)
+		cipher2 := p2.SimpleCBC(password)
+
+		encrypted1, _ := cipher1.Encrypt(plaintext)
+		encrypted2, _ := cipher2.Encrypt(plaintext)
+
+		// Ciphertexts should be different (different salts = different keys)
+		if encrypted1 == encrypted2 {
+			t.Error("Different providers with different salts should produce different ciphertexts")
+		}
+
+		// But each can decrypt its own
+		decrypted1, _ := cipher1.Decrypt(encrypted1)
+		decrypted2, _ := cipher2.Decrypt(encrypted2)
+
+		if decrypted1 != plaintext || decrypted2 != plaintext {
+			t.Error("Providers should be able to decrypt their own ciphertexts")
+		}
+	})
+
+	t.Run("Provider with Base64 codec produces valid Base64", func(t *testing.T) {
+		p := NewProvider(WithStringCodec(codec.Base64Std))
+		cipher := p.SimpleCBC("password")
+
+		encrypted, err := cipher.Encrypt("test")
+		if err != nil {
+			t.Fatalf("Encryption failed: %v", err)
+		}
+
+		// Base64 strings should only contain valid Base64 characters
+		// We can test by trying to decode it
+		decoded, err := codec.Base64Std.DecodeString(encrypted)
+		if err != nil {
+			t.Errorf("Encrypted text is not valid Base64: %v", err)
+		}
+		if len(decoded) == 0 {
+			t.Error("Decoded ciphertext should not be empty")
+		}
+	})
 }
 
 // Example_defaultProvider demonstrates using the DefaultProvider for backward compatibility.
