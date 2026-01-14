@@ -1,3 +1,5 @@
+// Package kdf defines the KeyDerivation interface for key derivation functions.
+// It also provides common KDF implementations including PBKDF2, scrypt, and Argon2id.
 package kdf
 
 import (

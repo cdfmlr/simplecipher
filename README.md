@@ -1,25 +1,48 @@
-# simplecipher
+# simplecipher v2
+
+> [!warning] simplecipher v2 is not backward compatible with v1 (and v0).
+> And there is no plan to provide a migration guide from v1 to v2.
 
 [![GoDoc](https://pkg.go.dev/badge/github.com/cdfmlr/simplecipher)](https://pkg.go.dev/github.com/cdfmlr/simplecipher)
 
 Package simplecipher provides a simple interface for encrypting and
-decrypting data using AES.
+decrypting data using AES, effortlessly.
+
+```go
+package main
+
+import (
+	"fmt"
+	"github.com/cdfmlr/simplecipher/v2"
+)
+
+func main() {
+	// encrypt "plaintext" with a key "123456" (not this one I hope)
+	encrypted, _ := simplecipher.SimpleCTR("123456").Encrypt("plaintext")
+	fmt.Println("ciphertext:", encrypted)
+
+	// decrypt with the same key
+	decrypted, _ := simplecipher.SimpleCTR("123456").Decrypt(encrypted)
+	fmt.Println("plaintext:", decrypted)
+}
+```
 
 Features:
 
-- A bit more muggle-friendly and ready-to-use interface: wraps around the standard [`crypto/aes`](https://pkg.go.dev/crypto/aes) and [`crypto/cipher`](https://pkg.go.dev/crypto/cipher) package.
+- **Muggle friendly** and ready-to-use: wraps around the standard [`crypto/aes`](https://pkg.go.dev/crypto/aes) and [`crypto/cipher`](https://pkg.go.dev/crypto/cipher) package. Don't worry if you can't read the words like "cipher mode", "iv", "nonce", etc.
 - **string in -> string out**: Input key, input plaintext, output ciphertext or output plaintext are all strings. Optional hex, base64 or base32 encoding for ciphertext.
 - **Key derivation**: Able to generate a secure key matching the required length from an arbitrary passphrase.
-- Padding and unpadding for plaintext if necessary.
-- Fuzz tested.
+- **Don't panic**: instead of panic directly for a lot of cryptography related errors, return them as `error` values so that you can handle them properly.
+- **Padding** and unpadding for plaintext if necessary.
+- **Fully tested** and **Fuzz tested**.
 
 Cipher modes:
 
-- AEAD mode: working with string: GCM.
-- Block mode: working with string: CBC, CFB, OFB, CTR.
-- Stream mode: working with io.Reader and io.Writer: CFB, OFB, CTR.
+- AEAD mode (working with string): GCM.
+- Block mode (working with string): CBC, CFB, OFB, CTR.
+- Stream mode (working with io.Reader/io.Writer): CFB, OFB, CTR.
 
-Low-level cipher:
+Low-level block cipher:
 
 - Currently, the only supported underlying block cipher is AES (AES-128, AES-192 and AES-256).
 
@@ -28,7 +51,7 @@ Low-level cipher:
 Install:
 
 ```bash
-go get github.com/cdfmlr/simplecipher
+go get github.com/cdfmlr/simplecipher/v2
 ```
 
 Example:
@@ -38,24 +61,23 @@ package main
 
 import (
 	"fmt"
-	"github.com/cdfmlr/simplecipher"
+	"github.com/cdfmlr/simplecipher/v2"
 )
 
-func init() {
-	// Set your own salt for key derivation.
-	// Never trust the default one.
-	simplecipher.DefaultSalt = func() string { return "NaCl" }
-}
-
 func main() {
-	// don't worry about the key length, we will derive a secure key from it.
+	// Configure a Provider with custom salt.
+	sc := simplecipher.NewProvider(
+		simplecipher.WithSaltFunc(func() string { return "NaCl" }),
+	)
+
+	// don't worry about the key length, simplecipher will derive a secure key from it.
 	key := "123456"
 
 	// plaintext to be encrypted, any string
 	plaintext := "Hello, world!"
 
-	// instance a cipher with the key (and DefaultSalt)
-	cipher := simplecipher.SimpleCTR(key)
+	// instance a cipher with the key
+	cipher := sc.SimpleCTR(key)
 
 	// encrypt with cipher
 	encrypted, _ := cipher.Encrypt(plaintext)
@@ -67,15 +89,17 @@ func main() {
 }
 ```
 
+Please refer to the [godoc](https://pkg.go.dev/github.com/cdfmlr/simplecipher/v2) for more examples and details.
+
 Best practice:
 
-- Create a new cipher instance for each encryption.
+- Create a new cipher instance for each encryption (reuse a cipher instance for decryption is ok).
 - Store and pass the key securely.
 - Remember to set you own salt for key derivation. And Keep it secret and safe too if possible. (Notice: You need to use the same salt for decryption and encryption.)
 
 ## APIs
 
-Cipher interface:
+Block interface:
 
 - `Encrypt(plaintext string) (ciphertext string, err error)`: Encrypt a plaintext string.
 - `Decrypt(ciphertext string) (plaintext string, err error)`: Decrypt a ciphertext string.
@@ -165,7 +189,7 @@ And why `CTR`? what's the difference between `CTR`, `CFB`, `OFB` and `CBC`?
 Technical details:
 
 - `SimpleXXX` force to use AES-256, while `NewXXX` allows you to choose from AES-128, AES-192 and AES-256.
-- `SimpleXXX` does key derivation with scrypt, and the result is not accessible (though you can always hack it out of course). So use `NewXXX` if you want to get the key and to use it with other tools.
+- `SimpleXXX` does key derivation and random iv/nonce generation behind the sense. The result is not accessible (though you can always hack it out of course). So use `NewXXX` if you want to get the key and to use it with other tools.
 
 ## License
 

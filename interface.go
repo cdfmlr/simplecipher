@@ -1,7 +1,7 @@
 // Package simplecipher wraps the standard library's crypto/cipher package.
 //
 // It provides a simple interface to encrypt and decrypt strings or
-// io.Reader/io.Writer streams using AES encryption.
+// io.Reader/io.Writer streams using AES and choices of cipher modes.
 package simplecipher
 
 import (

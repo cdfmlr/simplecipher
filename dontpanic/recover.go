@@ -1,3 +1,4 @@
+// Package dontpanic provides utilities to recover from panics and convert them to error values.
 package dontpanic
 
 import (

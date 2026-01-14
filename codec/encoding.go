@@ -1,3 +1,5 @@
+// Package codec defines an interface for encoding / decoding strings.
+// And it provides several implementations including Hex, Base64Std, Base64URL, Base32Std, and Base32Hex.
 package codec
 
 import (
