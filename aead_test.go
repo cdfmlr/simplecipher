@@ -75,3 +75,7 @@ func ExampleSimpleGCM() {
 
 	// Output: Hello, World!
 }
+
+// I failed to en/de-crypt GCM with openssl. So the interoperability
+// is unsure, but the current GCM implementation is manually
+// cross-checked with https://gchq.github.io/CyberChef/, the result lgtm.

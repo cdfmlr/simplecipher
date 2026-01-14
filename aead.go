@@ -17,8 +17,6 @@ import (
 //  - https://en.wikipedia.org/wiki/Block_cipher_mode_of_operation#Authenticated_encryption_with_additional_data_(AEAD)_modes
 //  - https://pkg.go.dev/crypto/cipher@go1.23.1#AEAD
 
-// TODO: feat(GCM): GCM can support stream.
-
 // gcm is the AES-GCM cipher mode implementation for the [Block] interface.
 type gcm struct {
 	key            Key
