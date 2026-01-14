@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
+
+	"github.com/cdfmlr/simplecipher/v2/dontpanic"
 	"github.com/cdfmlr/simplecipher/v2/pkcs7"
 )
 
@@ -57,7 +59,7 @@ func NewCBC(key, iv Key) Block {
 //
 // The IV will be prepended to the ciphertext as the first block.
 func (c *cbc) Encrypt(plainText string) (cipherText string, err error) {
-	defer recoverFromPanic(&err)
+	defer dontpanic.RecoverTo(&err)
 
 	plaintext := []byte(plainText)
 
@@ -94,7 +96,7 @@ func (c *cbc) Encrypt(plainText string) (cipherText string, err error) {
 // The iv prepended to the ciphertext (the first block) will be used.
 // And the iv field of the cbc will be ignored.
 func (c *cbc) Decrypt(cipherText string) (plainText string, err error) {
-	defer recoverFromPanic(&err)
+	defer dontpanic.RecoverTo(&err)
 
 	ciphertext, err := c.config.StringCodec.DecodeString(cipherText)
 	if err != nil {
@@ -156,14 +158,14 @@ func SimpleCBC(keyPassphrase string) Block {
 }
 
 func (c *simpleCBC) Encrypt(plainText string) (cipherText string, err error) {
-	defer recoverFromPanic(&err)
+	defer dontpanic.RecoverTo(&err)
 
 	paddedText := string(pkcs7.Pad(aes.BlockSize, []byte(plainText)))
 	return c.cbc.Encrypt(paddedText)
 }
 
 func (c *simpleCBC) Decrypt(cipherText string) (plainText string, err error) {
-	defer recoverFromPanic(&err)
+	defer dontpanic.RecoverTo(&err)
 
 	paddedText, err := c.cbc.Decrypt(cipherText)
 	if err != nil {
@@ -195,7 +197,7 @@ func newStreamToBlock(sc Stream, provider *Provider) Block {
 }
 
 func (s *streamToBlock) Encrypt(plainText string) (cipherText string, err error) {
-	defer recoverFromPanic(&err)
+	defer dontpanic.RecoverTo(&err)
 
 	plainTextReader := bytes.NewReader([]byte(plainText))
 	cipherTextBuffer := new(bytes.Buffer)
@@ -212,7 +214,7 @@ func (s *streamToBlock) Encrypt(plainText string) (cipherText string, err error)
 }
 
 func (s *streamToBlock) Decrypt(cipherText string) (plainText string, err error) {
-	defer recoverFromPanic(&err)
+	defer dontpanic.RecoverTo(&err)
 
 	cipherTextBytes, err := s.config.StringCodec.DecodeString(cipherText)
 	if err != nil {

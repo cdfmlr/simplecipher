@@ -5,6 +5,8 @@ import (
 	"crypto/cipher"
 	"fmt"
 	"io"
+
+	"github.com/cdfmlr/simplecipher/v2/dontpanic"
 )
 
 // This package implements  AES stream cipher modes.
@@ -39,7 +41,7 @@ func newSteam(key, iv Key, cipherStream cipherStreamBuilder) Stream {
 // EncryptStream encrypts the given plaintext using CFB.
 // The ciphertext is written to the given writer without encoding.
 func (s *steam) EncryptStream(plainText io.Reader, cipherText io.Writer) (err error) {
-	defer recoverFromPanic(&err)
+	defer dontpanic.RecoverTo(&err)
 
 	key := s.key.Bytes()
 	iv := s.iv.Bytes()
@@ -65,7 +67,7 @@ func (s *steam) EncryptStream(plainText io.Reader, cipherText io.Writer) (err er
 // DecryptStream decrypts the given ciphertext using CFB.
 // The ciphertext read from the given reader should not be encoded.
 func (s *steam) DecryptStream(cipherText io.Reader, plainText io.Writer) (err error) {
-	defer recoverFromPanic(&err)
+	defer dontpanic.RecoverTo(&err)
 
 	key := s.key.Bytes()
 

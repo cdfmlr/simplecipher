@@ -6,13 +6,16 @@ import (
 	"crypto/sha256"
 	"crypto/sha512"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"math"
 	"os"
 	"reflect"
+	"strings"
 	"testing"
 
+	"github.com/cdfmlr/simplecipher/v2/dontpanic"
 	cryptoArgon2 "golang.org/x/crypto/argon2"
 	cryptoHkdf "golang.org/x/crypto/hkdf"
 	cryptoPbkdf2 "golang.org/x/crypto/pbkdf2"
@@ -433,6 +436,26 @@ func entropy(s string) float64 {
 	}
 
 	return entropy
+}
+
+func Test_recoverFromPanic(t *testing.T) {
+	var err error
+
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("failed to recover a panic: %v", r)
+		}
+		if !errors.Is(err, dontpanic.ErrPanic) {
+			t.Errorf("expected error to wrap ErrPanic, got: %v", err)
+		}
+		if !strings.Contains(err.Error(), "test panic") {
+			t.Errorf("expected error message to contain 'test panic', got: %v", err)
+		}
+	}()
+
+	defer dontpanic.RecoverTo(&err)
+
+	panic("test panic")
 }
 
 // TestArgon2id tests the Argon2id KeyDerivation implementation

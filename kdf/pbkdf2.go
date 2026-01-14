@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"hash"
 
+	"github.com/cdfmlr/simplecipher/v2/dontpanic"
 	cryptoPbkdf2 "golang.org/x/crypto/pbkdf2"
 )
 
@@ -49,7 +50,7 @@ func (p *pbkdf2) check() error {
 //
 // The keyLen is limited to maximum of 1<<20 (1M) bytes, as PBKDF2 is too slow to derive very large keys.
 func (p *pbkdf2) Derive(password, salt []byte, keyLen int) (key []byte, err error) {
-	defer recoverFromPanic(&err)
+	defer dontpanic.RecoverTo(&err)
 
 	if err := p.check(); err != nil {
 		return nil, err

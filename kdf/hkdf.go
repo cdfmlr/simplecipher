@@ -6,6 +6,7 @@ import (
 	"hash"
 	"io"
 
+	"github.com/cdfmlr/simplecipher/v2/dontpanic"
 	cryptoHkdf "golang.org/x/crypto/hkdf"
 )
 
@@ -50,7 +51,7 @@ func (h *hkdf) check() error {
 //
 // The keyLen is limited to maximum of 1<<20 (1M) bytes as HKDF has entropy limit.
 func (h *hkdf) Derive(password, salt []byte, keyLen int) (key []byte, err error) {
-	defer recoverFromPanic(&err)
+	defer dontpanic.RecoverTo(&err)
 
 	if err := h.check(); err != nil {
 		return nil, err

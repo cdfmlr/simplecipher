@@ -8,6 +8,7 @@ import (
 	"errors"
 	"io"
 
+	"github.com/cdfmlr/simplecipher/v2/dontpanic"
 	"github.com/cdfmlr/simplecipher/v2/kdf"
 )
 
@@ -48,7 +49,7 @@ var (
 	ErrPlaintextBlockSize  = errors.New("plaintext is not a multiple of the block size")
 	ErrCipherTextTooShort  = errors.New("ciphertext too short")
 	ErrCipherTextBlockSize = errors.New("ciphertext is not a multiple of the block size")
-	ErrPanic               = errors.New("recovered from panic")
 	ErrCopy                = errors.New("copy error")
 	ErrNewAesCipher        = errors.New("aes.NewCipher error")
+	ErrPanic               = dontpanic.ErrPanic
 )

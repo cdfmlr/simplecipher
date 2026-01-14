@@ -3,7 +3,8 @@ package simplecipher
 import (
 	"crypto/aes"
 	"crypto/cipher"
-	"fmt"
+
+	"github.com/cdfmlr/simplecipher/v2/dontpanic"
 )
 
 // This file implements AES cipher modes providing authenticated encryption with
@@ -62,7 +63,7 @@ func SimpleGCM(keyPassphrase, additionalPassphrase string) Block {
 // Encrypt encrypts the given plaintext using GCM.
 // The ciphertext is returned with the provider's StringCodec encoding.
 func (g *gcm) Encrypt(plainText string) (cipherText string, err error) {
-	defer recoverFromPanic(&err)
+	defer dontpanic.RecoverTo(&err)
 
 	plaintext := []byte(plainText)
 	key := g.key.Bytes()
@@ -91,7 +92,7 @@ func (g *gcm) Encrypt(plainText string) (cipherText string, err error) {
 // Decrypt decrypts the given ciphertext using GCM.
 // The ciphertext must be a string encoded with the provider's StringCodec.
 func (g *gcm) Decrypt(cipherText string) (plainText string, err error) {
-	defer recoverFromPanic(&err)
+	defer dontpanic.RecoverTo(&err)
 
 	ciphertext, err := g.config.StringCodec.DecodeString(cipherText)
 	if err != nil {
@@ -121,11 +122,4 @@ func (g *gcm) Decrypt(cipherText string) (plainText string, err error) {
 	}
 
 	return string(plaintext), nil
-}
-
-// recoverFromPanic recovers from a panic and sets the error to the given pointer.
-func recoverFromPanic(err *error) {
-	if r := recover(); r != nil {
-		*err = fmt.Errorf("%w: %v", ErrPanic, r)
-	}
 }

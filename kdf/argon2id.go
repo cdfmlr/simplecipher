@@ -3,6 +3,7 @@ package kdf
 import (
 	"fmt"
 
+	"github.com/cdfmlr/simplecipher/v2/dontpanic"
 	cryptoArgon2 "golang.org/x/crypto/argon2"
 )
 
@@ -53,7 +54,7 @@ func (a *argon2id) check() error {
 // Derive a key from the given password and salt using argon2id.
 // Remember to get a good random salt.
 func (a *argon2id) Derive(password, salt []byte, keyLen int) (key []byte, err error) {
-	defer recoverFromPanic(&err)
+	defer dontpanic.RecoverTo(&err)
 
 	if err := a.check(); err != nil {
 		return nil, err

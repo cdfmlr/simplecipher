@@ -2,7 +2,11 @@ package simplecipher
 
 import (
 	"encoding/hex"
+	"errors"
+	"strings"
 	"testing"
+
+	"github.com/cdfmlr/simplecipher/v2/dontpanic"
 )
 
 // This file provides compatibility tests to ensure that
@@ -191,4 +195,24 @@ func TestSimpleGCM_Compatibility(t *testing.T) {
 			t.Errorf("Decrypted text mismatch: expected %s, got %s", plaintext, decryptedText)
 		}
 	})
+}
+
+func Test_recoverFromPanic(t *testing.T) {
+	var err error
+
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("failed to recover a panic: %v", r)
+		}
+		if !errors.Is(err, dontpanic.ErrPanic) {
+			t.Errorf("expected error to wrap ErrPanic, got: %v", err)
+		}
+		if !strings.Contains(err.Error(), "test panic") {
+			t.Errorf("expected error message to contain 'test panic', got: %v", err)
+		}
+	}()
+
+	defer dontpanic.RecoverTo(&err)
+
+	panic("test panic")
 }

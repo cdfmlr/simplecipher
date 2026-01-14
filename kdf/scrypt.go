@@ -3,6 +3,7 @@ package kdf
 import (
 	"fmt"
 
+	"github.com/cdfmlr/simplecipher/v2/dontpanic"
 	cryptoScrypt "golang.org/x/crypto/scrypt"
 )
 
@@ -61,7 +62,7 @@ func (s *scrypt) check() error {
 // Derive a key from the given password and salt using scrypt.
 // Remember to get a good random salt.
 func (s *scrypt) Derive(password, salt []byte, keyLen int) (key []byte, err error) {
-	defer recoverFromPanic(&err)
+	defer dontpanic.RecoverTo(&err)
 
 	if err := s.check(); err != nil {
 		return nil, err
