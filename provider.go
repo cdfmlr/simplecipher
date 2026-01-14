@@ -1,12 +1,6 @@
 package simplecipher
 
 import (
-	"crypto/aes"
-	"crypto/rand"
-	"fmt"
-	mathrand "math/rand"
-	"time"
-
 	"github.com/cdfmlr/simplecipher/v2/codec"
 	"github.com/cdfmlr/simplecipher/v2/kdf"
 )
@@ -278,17 +272,7 @@ func (p *Provider) NewKey(passphrase string, len KeyLen, salt string) Key {
 // [Aes256] and the provider's salt function are used by default.
 // Use [WithSalt] and [WithLen] options to customize the key derivation.
 func (p *Provider) NewAesKey(passphrase string, options ...KeyGenOption) Key {
-	keygen := newKeyGen(passphrase, Aes256, p.SaltFunc(), p.KeyDerivation)
-
-	for _, opt := range options {
-		opt(keygen)
-	}
-
-	if keygen.Len != Aes128 && keygen.Len != Aes192 && keygen.Len != Aes256 {
-		// invalid key length for AES, default to Aes256
-		keygen.Len = Aes256
-	}
-	return keygen
+	return newAesKey(passphrase, options, p)
 }
 
 // NewNonce creates a new nonce with default [NonceSize].
@@ -296,13 +280,7 @@ func (p *Provider) NewAesKey(passphrase string, options ...KeyGenOption) Key {
 // The output key will be derived from the passphrase via
 // Sequential Memory-Hard Functions with the provider's salt function.
 func (p *Provider) NewNonce(passphrase string, options ...KeyGenOption) Key {
-	keygen := newKeyGen(passphrase, NonceSize, p.SaltFunc(), p.KeyDerivation)
-
-	for _, opt := range options {
-		opt(keygen)
-	}
-
-	return keygen
+	return newNonce(passphrase, options, p)
 }
 
 // NewRandomNonce creates a new random nonce with default [NonceSize].
@@ -310,14 +288,7 @@ func (p *Provider) NewNonce(passphrase string, options ...KeyGenOption) Key {
 // The output key will be derived from the passphrase via
 // Sequential Memory-Hard Functions with the provider's salt function.
 func (p *Provider) NewRandomNonce() Key {
-	iv := make([]byte, NonceSize)
-	_, err := rand.Read(iv)
-	if err == nil {
-		return Bytes(iv)
-	}
-
-	// Fallback to deterministic generation if crypto/rand fails
-	return p.NewIv(fmt.Sprint(mathrand.Float64(), time.Now()))
+	return newRandomNonce(p)
 }
 
 // NewIv creates a new IV with [aes.BlockSize] bytes.
@@ -325,13 +296,7 @@ func (p *Provider) NewRandomNonce() Key {
 // The output key will be derived from the passphrase via
 // Sequential Memory-Hard Functions with the provider's salt function.
 func (p *Provider) NewIv(passphrase string, options ...KeyGenOption) Key {
-	keygen := newKeyGen(passphrase, aes.BlockSize, p.SaltFunc(), p.KeyDerivation)
-
-	for _, opt := range options {
-		opt(keygen)
-	}
-
-	return keygen
+	return newIv(passphrase, options, p)
 }
 
 // NewRandomIv creates a new random IV with [aes.BlockSize] bytes.
@@ -340,12 +305,5 @@ func (p *Provider) NewIv(passphrase string, options ...KeyGenOption) Key {
 // If that fails, it falls back to generating an IV using the current time and
 // math/rand as a passphrase for key derivation.
 func (p *Provider) NewRandomIv() Key {
-	iv := make([]byte, aes.BlockSize)
-	_, err := rand.Read(iv)
-	if err == nil {
-		return Bytes(iv)
-	}
-
-	// Fallback to deterministic generation if crypto/rand fails
-	return p.NewIv(fmt.Sprint(mathrand.Float64(), time.Now()))
+	return newRandomIv(p)
 }

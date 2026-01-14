@@ -1,6 +1,12 @@
 package simplecipher
 
 import (
+	"crypto/aes"
+	"crypto/rand"
+	"fmt"
+	mathrand "math/rand"
+	"time"
+
 	"github.com/cdfmlr/simplecipher/v2/kdf"
 )
 
@@ -76,21 +82,6 @@ func newKeyGen(passphrase string, len KeyLen, salt string, keyDerivation kdf.Key
 		Salt:          salt,
 		KeyDerivation: keyDerivation,
 	}
-}
-
-// NewKey derives a new key in the specified length from the passphrase.
-//
-// The output key will be derived from the Passphrase (with Salt) via
-// Sequential Memory-Hard Functions (see [scrypt.Key] for details).
-//
-// Any UTF-8 string can be used as an input key (including "") and Salt.
-//
-// More than 32 bytes are recommended for the Passphrase.
-// And at least 8 bytes are recommended for Salt.
-//
-// Use [NewAesKey], [NewNonce], or [NewIv] for specific key types.
-func NewKey(passphrase string, len KeyLen, salt string) Key {
-	return newKeyGen(passphrase, len, salt, DefaultProvider.KeyDerivation)
 }
 
 // Bytes return the key as a byte slice.
@@ -181,14 +172,18 @@ const (
 	Aes256 KeyLen = 32
 )
 
-// NewAesKey creates a new AES key derived from the passphrase using the DefaultProvider's salt.
-//
-// [Aes256] and [DefaultProvider.SaltFunc] are used by default.
-// Use [WithSalt] and [WithLen] options to customize the key derivation.
-//
-// For custom salt function, use DefaultProvider.NewAesKey() or create your own Provider.
-func NewAesKey(passphrase string, options ...KeyGenOption) Key {
-	return DefaultProvider.NewAesKey(passphrase, options...)
+func newAesKey(passphrase string, options []KeyGenOption, p *config) Key {
+	keygen := newKeyGen(passphrase, Aes256, p.SaltFunc(), p.KeyDerivation)
+
+	for _, opt := range options {
+		opt(keygen)
+	}
+
+	if keygen.Len != Aes128 && keygen.Len != Aes192 && keygen.Len != Aes256 {
+		// invalid key length for AES, default to Aes256
+		keygen.Len = Aes256
+	}
+	return keygen
 }
 
 // ////// nonce //////////
@@ -196,37 +191,49 @@ func NewAesKey(passphrase string, options ...KeyGenOption) Key {
 // NonceSize is the default size of the nonce for AEAD ciphers.
 const (
 	NonceSize KeyLen = 12
-	TagSize   KeyLen = 16
+	// TagSize   KeyLen = 16
 )
 
-// NewNonce creates a new nonce with default [NonceSize] using the DefaultProvider's salt.
-//
-// The output key will be derived from the passphrase via
-// Sequential Memory-Hard Functions with [DefaultProvider.SaltFunc].
-//
-// For custom salt function, use DefaultProvider.NewNonce() or create your own Provider.
-func NewNonce(passphrase string, options ...KeyGenOption) Key {
-	return DefaultProvider.NewNonce(passphrase, options...)
+func newNonce(passphrase string, options []KeyGenOption, p *config) Key {
+	keygen := newKeyGen(passphrase, NonceSize, p.SaltFunc(), p.KeyDerivation)
+
+	for _, opt := range options {
+		opt(keygen)
+	}
+
+	return keygen
+}
+
+func newRandomNonce(p *config) Key {
+	iv := make([]byte, NonceSize)
+	_, err := rand.Read(iv)
+	if err == nil {
+		return Bytes(iv)
+	}
+
+	// Fallback to deterministic generation if crypto/rand fails
+	return p.NewIv(fmt.Sprint(mathrand.Float64(), time.Now()))
 }
 
 // ////// iv //////////
 
-// NewIv creates a new IV with [aes.BlockSize] bytes using the DefaultProvider's salt.
-//
-// The output key will be derived from the passphrase via
-// Sequential Memory-Hard Functions with [DefaultProvider.SaltFunc].
-//
-// For custom salt function, use DefaultProvider.NewIv() or create your own Provider.
-func NewIv(passphrase string, options ...KeyGenOption) Key {
-	return DefaultProvider.NewIv(passphrase, options...)
+func newIv(passphrase string, options []KeyGenOption, p *config) Key {
+	keygen := newKeyGen(passphrase, aes.BlockSize, p.SaltFunc(), p.KeyDerivation)
+
+	for _, opt := range options {
+		opt(keygen)
+	}
+
+	return keygen
 }
 
-// NewRandomIv creates a new random IV with [aes.BlockSize] bytes.
-func NewRandomIv() Key {
-	return DefaultProvider.NewRandomIv()
-}
+func newRandomIv(p *config) Key {
+	iv := make([]byte, aes.BlockSize)
+	_, err := rand.Read(iv)
+	if err == nil {
+		return Bytes(iv)
+	}
 
-// NewRandomNonce creates a new random nonce with [NonceSize] bytes.
-func NewRandomNonce() Key {
-	return DefaultProvider.NewRandomNonce()
+	// Fallback to deterministic generation if crypto/rand fails
+	return p.NewIv(fmt.Sprint(mathrand.Float64(), time.Now()))
 }
